@@ -86,19 +86,19 @@ Review the chip details by selecting a set of scenes that do not contain any `NA
 
 ```mermaid
 %%{init: {
-  "theme": "dark",
-  "themeCSS": ".cardinality text { fill: #ededed }",
+    "theme": "dark",
+    "themeCSS": ".cardinality text { fill: #ededed }",
     "themeVariables": {
-        "primaryTextColor": "#ededed",
+    "primaryTextColor": "#ededed",
         "nodeBorder": "#393939",
         "mainBkg": "#292929",
         "lineColor": "orange"
-    },
-        "flowchart": {
-            "curve": "basis",
-            "useMaxWidth": true,
-            "htmlLabels": true
-        }
+        },
+    "flowchart": {
+        "curve": "basis",
+        "useMaxWidth": true,
+        "htmlLabels": true
+    }
 }}%%
 flowchart TD
     %% Properties for the subgraph notes
