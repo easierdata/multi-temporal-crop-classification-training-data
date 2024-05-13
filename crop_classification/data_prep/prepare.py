@@ -155,8 +155,13 @@ if not os.path.exists(TILES_DF_PKL):
         # Get the first chip of the tile to get the geometry
         chip_df_filt = chip_df.loc[chip_df.tile == current_tile]
         first_chip_id = chip_df_filt.chip_id.iloc[0]
-        first_chip_index_in_json = chip_ids.index(first_chip_id)
-        roi = chips["features"][first_chip_index_in_json]["geometry"]
+        chip_feature = [
+            feature
+            for feature in chips["features"]
+            if feature.get("properties", {}).get("id") == first_chip_id
+        ]
+
+        roi = chip_feature[0]["geometry"]
 
         search = catalog.search(
             collections=["HLSS30.v2.0"],
@@ -168,7 +173,7 @@ if not os.path.exists(TILES_DF_PKL):
         fs = earthaccess.get_fsspec_https_session()
 
         num_results = search.matched()
-        item_collection = search.get_all_items()
+        item_collection = search.item_collection()
 
         tile_name = "T" + current_tile
         iter_items = 0
