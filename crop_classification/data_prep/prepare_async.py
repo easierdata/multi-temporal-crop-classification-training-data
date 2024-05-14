@@ -1,5 +1,6 @@
 import os
 import sys
+import itertools
 from typing import Any, Dict, List, Tuple
 from datetime import datetime
 import json
@@ -265,9 +266,13 @@ async def crawl_results(search_results: Dict[str, Dict]) -> Dict[str, Any]:
         ):
             chunk = tasks[i : i + sem._value]
             chunk_results = await asyncio.gather(*chunk)
+            # Filter out None values before extending all_results
+            chunk_results = [result for result in chunk_results if result is not None]
+            # Flatten the list of lists into a single list of dictionaries
+            chunk_results = [item for sublist in chunk_results for item in sublist]
             all_results.extend(chunk_results)
 
-        return all_results
+    return all_results
 
 
 async def process_page(
@@ -286,7 +291,7 @@ async def process_page(
 
     """
     async with sem:
-        parsed_details = {}
+        parsed_details = []
         page_response_json = await fetch_page(session, page_url)
 
         if page_response_json:
@@ -296,9 +301,14 @@ async def process_page(
                 if i["Name"] == "CLOUD_COVERAGE"
             ][0]["Values"][0]
             if int(cloud_coverage) <= CLOUD_THRES:
-                parsed_details = parse_content(page_response_json)
+                parsed_details.append(parse_content(page_response_json))
+            else:
+                # print(
+                #     f"Skipping tile {page_response_json['GranuleUR']} due to high cloud coverage: {cloud_coverage}%"
+                # )
+                return None
 
-        return parsed_details
+    return parsed_details
 
 
 async def fetch_page(session: aiohttp.ClientSession, url: str) -> None | str:
@@ -325,6 +335,7 @@ async def fetch_page(session: aiohttp.ClientSession, url: str) -> None | str:
 
 
 def main():
+
     crawled_results = []
     try:
         # Load the chips_df.pkl file
@@ -340,26 +351,30 @@ def main():
     print(f"There are a total of {len(tiles)} tiles that will be processed.")
 
     # Query the tiles based on the bounding box of the chips
-    search_results = run_stac_search(chip_df, chips_bbox)
+    search_results = run_stac_search(chip_df.head(3), chips_bbox)
 
+    # Assuming `search_results` is your dictionary
+    search_results = {
+        tile: search_results[tile] for tile in itertools.islice(search_results, 3)
+    }
     print("Processing the search results...")
-    for tile in tiles:
-        try:
-            crawled_results.append(asyncio.run(crawl_results(search_results[tile])))
-        except Exception as e:
-            print(f"Failed to process collection: {CHIPS_DF_PKL}. Reason: {e}")
-            import traceback
+    try:
+        for tile in tiles:
+            crawled_results.extend(asyncio.run(crawl_results(search_results[tile])))
+    except Exception as e:
+        print(f"Failed to process collection: {CHIPS_DF_PKL}. Reason: {e}")
+        import traceback
 
-            traceback.print_exc()
+        traceback.print_exc()
 
-        finally:
-            # Check if crawled_results is not empty
-            if crawled_results:
-                # Write the crawled results to disc
-                crawled_results_df = pd.DataFrame(crawled_results)
-                crawled_results_df.to_pickle(TILES_DF_PKL)
-            else:
-                print("No results to write to disc")
+    finally:
+        # Check if crawled_results is not empty
+        if crawled_results:
+            # Write the crawled results to disc
+            crawled_results_df = pd.DataFrame(crawled_results)
+            crawled_results_df.to_pickle(TILES_DF_PKL)
+        else:
+            print("No results to write to disc")
 
 
 if __name__ == "__main__":
