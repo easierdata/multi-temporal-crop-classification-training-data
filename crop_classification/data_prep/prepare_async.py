@@ -1,21 +1,46 @@
+import os
+import sys
+from typing import Any, Dict, List, Tuple
 from datetime import datetime
 import json
 import aiohttp
 import asyncio
 from pystac_client import Client
+import requests
 import tqdm
-import yaml
 from pathlib import Path
 import pandas as pd
+import concurrent.futures
+import multiprocessing
 
+# The code cell is used to add the src directory to the Python path, making
+# it possible to import modules from that directory.
 
+module_path = module_path = os.path.abspath(Path(__file__).parent.parent.resolve())
+sys.path.insert(0, module_path)
+try:
+    from data_prep import *
+except ModuleNotFoundError:
+    print("Module not found")
+    pass
+
+# Set the authentication selection. Options are 'netrc' or 'token'
 AUTH_SELECTION = "token"
-concurrency_limit = 50
+
+# Identify the number of CPUs on the system to set the concurrency limit
+NUM_CPUS = multiprocessing.cpu_count()
+if NUM_CPUS > 24:
+    NUM_CPUS = 24
+
+# Set the concurrency limit for running asynchronous tasks
+CONCURRENCY_LIMIT = 50
+
+# global variables for the bands of interest and cloud threshold
 BANDS_OF_INTEREST = ["B02", "B03", "B04", "B8A", "B11", "B12", "Fmask"]
 CLOUD_THRES = 5
 
 
-def get_earthdata_auth(auth_type: str = ["netrc", "token"]):  # -> requests.Session:
+def get_earthdata_auth(auth_type: str = ["netrc", "token"]) -> requests.Session:
     """
     Get the Earthdata authentication token.
 
@@ -43,38 +68,19 @@ def get_earthdata_auth(auth_type: str = ["netrc", "token"]):  # -> requests.Sess
     return netrc_cred, headers
 
 
-def get_tile_metadata(item_collection, bb_chip_payload):
-    ### Querying tile links based on geometry of chips
-    STAC_URL = "https://cmr.earthdata.nasa.gov/stac"
-    catalog = Client.open(f"{STAC_URL}/LPCLOUD/")
-    tiles = item_collection.tile.unique().tolist()
-    for tile in tiles:
-        chip_df_filt = item_collection.loc[item_collection.tile == tile]
-        first_chip_id = chip_df_filt.chip_id.iloc[0]
-        chip_feature = [
-            feature
-            for feature in bb_chip_payload["features"]
-            if feature.get("properties", {}).get("id") == first_chip_id
-        ]
-        aoi = chip_feature[0]["geometry"]
+def parse_content(search_result_json: Dict[str, Any]) -> Dict[str, Any]:
+    """
+    Parse the content of a search result JSON and extract relevant information.
 
-        search = catalog.search(
-            collections=["HLSS30.v2.0"],
-            intersects=aoi,
-            datetime="2022-03-01/2022-09-30",
-        )
-        print(f"Tile: {search.matched()}")
+    Args:
+        search_result_json (Dict[str, Any]): The search result JSON to parse.
 
-    num_results = search.matched()
-    print(f"Number of results: {num_results}")
-    search_results = search.item_collection()
-    return search_results
+    Returns:
+        Dict[str, Any]: A dictionary containing the extracted tile details.
 
-
-def parse_content(search_result_json):
-
+    """
     # Create a dictionary to store the tile details
-    tile_details = {}
+    tile_details: Dict[str, Any] = {}
     tile_details["title_id"] = search_result_json["GranuleUR"]
 
     # Extract additional attributes from the search result
@@ -115,36 +121,55 @@ def parse_content(search_result_json):
     return tile_details
 
 
-def query_tiles_based_on_bounding_box(selected_chip_id, chips_bbox):
+def query_tiles_based_on_bounding_box(chip_bbox: List[float]) -> List[dict]:
+    """
+    Queries tiles based on a given bounding box.
+
+    Args:
+        chip_bbox (List[float]): The bounding box coordinates in the format [minx, miny, maxx, maxy].
+
+    Returns:
+        List[dict]: A list of tiles matching the query.
+
+    Raises:
+        None
+
+    Examples:
+        >>> bbox = [10.0, 20.0, 30.0, 40.0]
+        >>> query_tiles_based_on_bounding_box(bbox)
+        [{'id': 'tile1', 'name': 'Tile 1'}, {'id': 'tile2', 'name': 'Tile 2'}]
+    """
     # Building STAC url to query tiles
     STAC_URL = "https://cmr.earthdata.nasa.gov/stac"
     catalog = Client.open(f"{STAC_URL}/LPCLOUD/")
-    chip_feature = [
-        feature
-        for feature in chips_bbox["features"]
-        if feature.get("properties", {}).get("id") == selected_chip_id
-    ]
-    aoi = chip_feature[0]["geometry"]
 
     search = catalog.search(
         collections=["HLSS30.v2.0"],
-        intersects=aoi,
+        intersects=chip_bbox,
         datetime="2022-03-01/2022-09-30",
     )
     print(f"Number of tiles found in query: {search.matched()}")
     return search.item_collection()
 
 
-async def crawl_results(search_results, tile_id):
+async def crawl_results(search_results: Dict[str, Dict]) -> Dict[str, Any]:
+    """
+    Crawls the search results and retrieves the metadata pages for parsing.
 
+    Args:
+        search_results (Dict[str, Dict]): A list of search results.
+
+    Returns:
+        List[Result]: A list of all the results.
+
+    """
     all_results = []
     # Get the Earthdata authentication token
     netrc_auth, headers_auth = get_earthdata_auth(auth_type=AUTH_SELECTION)
     tile_iter = 0
-    # tile_name = "T" + tile_id
     async with aiohttp.ClientSession(auth=netrc_auth, headers=headers_auth) as session:
         # Create a semaphore with X as the maximum number of concurrent tasks
-        sem = asyncio.Semaphore(concurrency_limit)
+        sem = asyncio.Semaphore(CONCURRENCY_LIMIT)
         tasks = []
 
         # Loop through each result page and grab the metadata page that will be parsed
@@ -168,11 +193,22 @@ async def crawl_results(search_results, tile_id):
 
         return all_results
 
-    # print(f"Finished processing {len(all_results)} items.")
-    # print(f"First item: {all_results[0]}")
 
+async def process_page(
+    sem: asyncio.Semaphore, session: aiohttp.ClientSession, page_url: str
+) -> Dict[str, Any]:
+    """
+    Process a page asynchronously.
 
-async def process_page(sem, session, page_url):
+    Args:
+        sem (asyncio.Semaphore): Semaphore to limit the number of concurrent requests.
+        session (aiohttp.ClientSession): HTTP session for making requests.
+        page_url (str): URL of the page to process.
+
+    Returns:
+        dict: Parsed details of the page.
+
+    """
     async with sem:
         parsed_details = {}
         page_response_json = await fetch_page(session, page_url)
@@ -212,22 +248,76 @@ async def fetch_page(session: aiohttp.ClientSession, url: str) -> None | str:
             return await response.json()
 
 
+def run_stac_search(
+    chip_df: pd.DataFrame, chips_bbox: Tuple[float, float, float, float]
+) -> Dict[str, Dict]:
+    """
+    Perform a parallel search for STAC tiles based on the given chip dataframe and bounding box.
+
+    Args:
+        chip_df: The chip dataframe containing information about the tiles.
+        chips_bbox: The bounding box coordinates (minx, miny, maxx, maxy) for the chips.
+
+    Returns:
+        A dictionary containing the search results for each tile.
+    """
+    tiles = chip_df.tile.unique().tolist()
+
+    chip_payload = create_chip_payload(chip_df, chips_bbox)
+
+    tile_search_results = {}
+    with concurrent.futures.ThreadPoolExecutor() as executor:
+        # Submit each tile query as a separate thread
+        future_to_tile = {
+            executor.submit(
+                query_tiles_based_on_bounding_box,
+                chip_payload[tile],
+            ): tile
+            for tile in tiles
+        }
+
+        # Retrieve results as they become available
+        for future in concurrent.futures.as_completed(future_to_tile):
+            tile = future_to_tile[future]
+            try:
+                result = future.result()
+            except Exception as exc:
+                print(f"Tile {tile} generated an exception: {exc}")
+            else:
+                tile_search_results[tile] = result
+
+    return tile_search_results
+
+
+def create_chip_payload(
+    chip_df: pd.DataFrame, chips_bbox: Dict[str, Any]
+) -> Dict[str, Any]:
+    """
+    Create a payload dictionary containing chip details for each unique tile.
+
+    Args:
+        chip_df (pd.DataFrame): DataFrame containing chip details.
+        chips_bbox (Dict[str, Any]): Dictionary containing chip bounding box information.
+
+    Returns:
+        Dict[str, Any]: Payload dictionary with tile as key and chip bounding box as value.
+    """
+    payload = {}
+
+    tiles = chip_df.tile.unique().tolist()
+    for tile in tiles:
+        chip_df_filt = chip_df.loc[chip_df.tile == tile]
+        first_chip_id = chip_df_filt.chip_id.iloc[0]
+        chip_bbox_feature = [
+            feature
+            for feature in chips_bbox["features"]
+            if feature.get("properties", {}).get("id") == first_chip_id
+        ]
+        payload[tile] = chip_bbox_feature[0]["geometry"]
+    return payload
+
+
 def main():
-    x = []
-    with open(
-        r"C:\github\client_projects\umd\multi-temporal-crop-classification-training-data\config\default_config.yaml",
-        "r",
-    ) as file:
-        config = yaml.safe_load(file)
-
-    DATA_DIR = config["data_dir"]
-    # TRAINING_DATASET_DIR_NAME = config["train_dataset_name"]
-
-    # MISC_DIR = Path(DATA_DIR) / "misc"
-    # REQUIRED_SOURCES = Path(DATA_DIR) / "required_sources"
-
-    CHIPS_DF_PKL = Path(DATA_DIR) / "chips_df.pkl"
-    BB_CHIP_PAYLOAD = Path(DATA_DIR) / "required_sources" / "bb_chip_payload.geojson"
 
     try:
         # Load the chips_df.pkl file
@@ -242,14 +332,12 @@ def main():
     tiles = chip_df.tile.unique().tolist()
     print(f"There are a total of {len(tiles)} tiles")
 
-    for tile in tiles:
-        # Grab details about the current tile
-        chip_df_filt = chip_df.loc[chip_df.tile == tile]
-        first_chip_id = chip_df_filt.chip_id.iloc[0]
-        query_results = query_tiles_based_on_bounding_box(first_chip_id, chips_bbox)
+    # Query the tiles based on the bounding box of the chips
+    search_results = run_stac_search(chip_df, chips_bbox)
 
+    for tile in tiles:
         try:
-            x.append(asyncio.run(crawl_results(query_results, tile)))
+            asyncio.run(crawl_results(search_results[tile]))
         except Exception as e:
             print(f"Failed to process collection: {CHIPS_DF_PKL}. Reason: {e}")
             import traceback
