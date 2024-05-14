@@ -261,8 +261,11 @@ def run_stac_search(
     Returns:
         A dictionary containing the search results for each tile.
     """
-    tiles = chip_df.tile.unique().tolist()
+    print(
+        f"Running STAC search to identify all tiles that intersect the chip bounding box."
+    )
 
+    tiles = chip_df.tile.unique().tolist()
     chip_payload = create_chip_payload(chip_df, chips_bbox)
 
     tile_search_results = {}
@@ -277,7 +280,9 @@ def run_stac_search(
         }
 
         # Retrieve results as they become available
-        for future in concurrent.futures.as_completed(future_to_tile):
+        for future in tqdm.tqdm(
+            concurrent.futures.as_completed(future_to_tile), total=len(future_to_tile)
+        ):
             tile = future_to_tile[future]
             try:
                 result = future.result()
@@ -318,7 +323,7 @@ def create_chip_payload(
 
 
 def main():
-
+    crawled_results = []
     try:
         # Load the chips_df.pkl file
         chip_df = pd.read_pickle(CHIPS_DF_PKL)
@@ -330,14 +335,15 @@ def main():
 
     # Get the unique tiles in the item collection
     tiles = chip_df.tile.unique().tolist()
-    print(f"There are a total of {len(tiles)} tiles")
+    print(f"There are a total of {len(tiles)} tiles that will be processed.")
 
     # Query the tiles based on the bounding box of the chips
     search_results = run_stac_search(chip_df, chips_bbox)
 
     for tile in tiles:
         try:
-            asyncio.run(crawl_results(search_results[tile]))
+            print("Processing the search results...")
+            crawled_results.append(asyncio.run(crawl_results(search_results[tile])))
         except Exception as e:
             print(f"Failed to process collection: {CHIPS_DF_PKL}. Reason: {e}")
             import traceback
