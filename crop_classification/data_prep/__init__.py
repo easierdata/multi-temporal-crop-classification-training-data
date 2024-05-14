@@ -82,12 +82,3 @@ if not CDL_SOURCE.exists():
     CDL_SOURCE.touch()
 if not CLD_RECLASS_PROPERTIES.exists():
     CLD_RECLASS_PROPERTIES.touch()
-
-
-# src_dir = config['src_dir']
-# train_dataset_name = config['train_dataset_name']
-# training_dataset_dir = config['training_dataset_dir']
-# chip_dir_filt = config['chip_dir_filt']
-# chip_fmask_dir = config['chip_fmask_dir']
-# chip_dir = config['chip_dir']
-# tile_dir = config['tile_dir']
