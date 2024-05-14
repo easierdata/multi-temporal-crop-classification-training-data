@@ -344,6 +344,15 @@ def main():
 
             traceback.print_exc()
 
+        finally:
+            # Check if crawled_results is not empty
+            if crawled_results:
+                # Write the crawled results to disc
+                crawled_results_df = pd.DataFrame(crawled_results)
+                crawled_results_df.to_pickle(TILES_DF_PKL)
+            else:
+                print("No results to write to disc")
+
 
 if __name__ == "__main__":
     main()
