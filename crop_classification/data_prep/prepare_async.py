@@ -362,6 +362,12 @@ def main():
     print("Processing the search results...")
     try:
         for tile in tiles:
+
+            # Continue the loop if the value for the key, tile is empty
+            if not search_results[tile]:
+                print(f"No search results for tile: {tile}")
+                continue
+
             crawled_results.extend(asyncio.run(crawl_results(search_results[tile])))
     except Exception as e:
         print(f"Failed to process collection: {CHIPS_DF_PKL}. Reason: {e}")
