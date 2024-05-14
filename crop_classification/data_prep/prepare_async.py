@@ -189,7 +189,7 @@ async def crawl_results(search_results: Dict[str, Dict]) -> Dict[str, Any]:
             chunk_results = await asyncio.gather(*chunk)
             all_results.extend(chunk_results)
 
-    return all_results
+        return all_results
 
 
 async def process_page(
