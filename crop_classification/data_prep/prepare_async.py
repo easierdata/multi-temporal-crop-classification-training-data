@@ -351,12 +351,14 @@ def main():
     print(f"There are a total of {len(tiles)} tiles that will be processed.")
 
     # Query the tiles based on the bounding box of the chips
-    search_results = run_stac_search(chip_df.head(3), chips_bbox)
+    search_results = run_stac_search(chip_df, chips_bbox)
 
-    # Assuming `search_results` is your dictionary
-    search_results = {
-        tile: search_results[tile] for tile in itertools.islice(search_results, 3)
-    }
+    # # Filter results for testing purposes
+    # search_results = run_stac_search(chip_df.head(3), chips_bbox)
+    # search_results = {
+    #     tile: search_results[tile] for tile in itertools.islice(search_results, 3)
+    # }
+
     print("Processing the search results...")
     try:
         for tile in tiles:
