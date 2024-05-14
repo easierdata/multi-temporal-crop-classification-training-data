@@ -338,9 +338,9 @@ def main():
     # Query the tiles based on the bounding box of the chips
     search_results = run_stac_search(chip_df, chips_bbox)
 
+    print("Processing the search results...")
     for tile in tiles:
         try:
-            print("Processing the search results...")
             crawled_results.append(asyncio.run(crawl_results(search_results[tile])))
         except Exception as e:
             print(f"Failed to process collection: {CHIPS_DF_PKL}. Reason: {e}")
