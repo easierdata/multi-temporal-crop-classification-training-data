@@ -111,12 +111,16 @@ def parse_content(search_result_json: Dict[str, Any]) -> Dict[str, Any]:
             s3_urls.append({"Suffix": suffix, "URL": url})
 
     # Only store the urls for the bands of interest
-    tile_details["http_links"] = [
-        url for url in https_urls if url["Suffix"] in BANDS_OF_INTEREST
-    ]
-    tile_details["s3_links"] = [
-        url for url in s3_urls if url["Suffix"] in BANDS_OF_INTEREST
-    ]
+    tile_details["http_links"] = {
+        url["Suffix"]: url["URL"]
+        for url in https_urls
+        if url["Suffix"] in BANDS_OF_INTEREST
+    }
+    tile_details["s3_links"] = {
+        url["Suffix"]: url["URL"]
+        for url in s3_urls
+        if url["Suffix"] in BANDS_OF_INTEREST
+    }
 
     return tile_details
 
