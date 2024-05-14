@@ -148,7 +148,7 @@ def query_tiles_based_on_bounding_box(chip_bbox: List[float]) -> List[dict]:
         intersects=chip_bbox,
         datetime="2022-03-01/2022-09-30",
     )
-    print(f"Number of tiles found in query: {search.matched()}")
+
     return search.item_collection()
 
 
@@ -166,7 +166,7 @@ async def crawl_results(search_results: Dict[str, Dict]) -> Dict[str, Any]:
     all_results = []
     # Get the Earthdata authentication token
     netrc_auth, headers_auth = get_earthdata_auth(auth_type=AUTH_SELECTION)
-    tile_iter = 0
+
     async with aiohttp.ClientSession(auth=netrc_auth, headers=headers_auth) as session:
         # Create a semaphore with X as the maximum number of concurrent tasks
         sem = asyncio.Semaphore(CONCURRENCY_LIMIT)
@@ -174,7 +174,6 @@ async def crawl_results(search_results: Dict[str, Dict]) -> Dict[str, Any]:
 
         # Loop through each result page and grab the metadata page that will be parsed
         for search_result in search_results:
-            # Assuming `links` is your list of dictionaries
             metadata_page = [
                 link.href
                 for link in search_result.links
@@ -182,16 +181,15 @@ async def crawl_results(search_results: Dict[str, Dict]) -> Dict[str, Any]:
             ][0]
             tasks.append(process_page(sem, session, metadata_page))
 
-        print(f"Hold tight! Parsing content from {len(tasks)} pages.")
         for i in tqdm.tqdm(
             range(0, len(tasks), sem._value),
-            desc=f"({tile_iter}/{len(search_results)})",
+            desc=f"({len(search_results)} pages)",
         ):
             chunk = tasks[i : i + sem._value]
             chunk_results = await asyncio.gather(*chunk)
             all_results.extend(chunk_results)
 
-        return all_results
+    return all_results
 
 
 async def process_page(
