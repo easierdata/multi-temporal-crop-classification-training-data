@@ -121,6 +121,80 @@ def parse_content(search_result_json: Dict[str, Any]) -> Dict[str, Any]:
     return tile_details
 
 
+def run_stac_search(
+    chip_df: pd.DataFrame, chips_bbox: Tuple[float, float, float, float]
+) -> Dict[str, Dict]:
+    """
+    Perform a parallel search for STAC tiles based on the given chip dataframe and bounding box.
+
+    Args:
+        chip_df: The chip dataframe containing information about the tiles.
+        chips_bbox: The bounding box coordinates (minx, miny, maxx, maxy) for the chips.
+
+    Returns:
+        A dictionary containing the search results for each tile.
+    """
+    print(
+        "Running STAC search to identify all tiles that intersect the chip bounding box."
+    )
+
+    tiles = chip_df.tile.unique().tolist()
+    chip_payload = create_chip_payload(chip_df, chips_bbox)
+
+    tile_search_results = {}
+    with concurrent.futures.ThreadPoolExecutor() as executor:
+        # Submit each tile query as a separate thread
+        future_to_tile = {
+            executor.submit(
+                query_tiles_based_on_bounding_box,
+                chip_payload[tile],
+            ): tile
+            for tile in tiles
+        }
+
+        # Retrieve results as they become available
+        for future in tqdm.tqdm(
+            concurrent.futures.as_completed(future_to_tile), total=len(future_to_tile)
+        ):
+            tile = future_to_tile[future]
+            try:
+                result = future.result()
+            except Exception as exc:
+                print(f"Tile {tile} generated an exception: {exc}")
+            else:
+                tile_search_results[tile] = result
+
+    return tile_search_results
+
+
+def create_chip_payload(
+    chip_df: pd.DataFrame, chips_bbox: Dict[str, Any]
+) -> Dict[str, Any]:
+    """
+    Create a payload dictionary containing chip details for each unique tile.
+
+    Args:
+        chip_df (pd.DataFrame): DataFrame containing chip details.
+        chips_bbox (Dict[str, Any]): Dictionary containing chip bounding box information.
+
+    Returns:
+        Dict[str, Any]: Payload dictionary with tile as key and chip bounding box as value.
+    """
+    payload = {}
+
+    tiles = chip_df.tile.unique().tolist()
+    for tile in tiles:
+        chip_df_filt = chip_df.loc[chip_df.tile == tile]
+        first_chip_id = chip_df_filt.chip_id.iloc[0]
+        chip_bbox_feature = [
+            feature
+            for feature in chips_bbox["features"]
+            if feature.get("properties", {}).get("id") == first_chip_id
+        ]
+        payload[tile] = chip_bbox_feature[0]["geometry"]
+    return payload
+
+
 def query_tiles_based_on_bounding_box(chip_bbox: List[float]) -> List[dict]:
     """
     Queries tiles based on a given bounding box.
@@ -244,80 +318,6 @@ async def fetch_page(session: aiohttp.ClientSession, url: str) -> None | str:
             return None
         else:
             return await response.json()
-
-
-def run_stac_search(
-    chip_df: pd.DataFrame, chips_bbox: Tuple[float, float, float, float]
-) -> Dict[str, Dict]:
-    """
-    Perform a parallel search for STAC tiles based on the given chip dataframe and bounding box.
-
-    Args:
-        chip_df: The chip dataframe containing information about the tiles.
-        chips_bbox: The bounding box coordinates (minx, miny, maxx, maxy) for the chips.
-
-    Returns:
-        A dictionary containing the search results for each tile.
-    """
-    print(
-        f"Running STAC search to identify all tiles that intersect the chip bounding box."
-    )
-
-    tiles = chip_df.tile.unique().tolist()
-    chip_payload = create_chip_payload(chip_df, chips_bbox)
-
-    tile_search_results = {}
-    with concurrent.futures.ThreadPoolExecutor() as executor:
-        # Submit each tile query as a separate thread
-        future_to_tile = {
-            executor.submit(
-                query_tiles_based_on_bounding_box,
-                chip_payload[tile],
-            ): tile
-            for tile in tiles
-        }
-
-        # Retrieve results as they become available
-        for future in tqdm.tqdm(
-            concurrent.futures.as_completed(future_to_tile), total=len(future_to_tile)
-        ):
-            tile = future_to_tile[future]
-            try:
-                result = future.result()
-            except Exception as exc:
-                print(f"Tile {tile} generated an exception: {exc}")
-            else:
-                tile_search_results[tile] = result
-
-    return tile_search_results
-
-
-def create_chip_payload(
-    chip_df: pd.DataFrame, chips_bbox: Dict[str, Any]
-) -> Dict[str, Any]:
-    """
-    Create a payload dictionary containing chip details for each unique tile.
-
-    Args:
-        chip_df (pd.DataFrame): DataFrame containing chip details.
-        chips_bbox (Dict[str, Any]): Dictionary containing chip bounding box information.
-
-    Returns:
-        Dict[str, Any]: Payload dictionary with tile as key and chip bounding box as value.
-    """
-    payload = {}
-
-    tiles = chip_df.tile.unique().tolist()
-    for tile in tiles:
-        chip_df_filt = chip_df.loc[chip_df.tile == tile]
-        first_chip_id = chip_df_filt.chip_id.iloc[0]
-        chip_bbox_feature = [
-            feature
-            for feature in chips_bbox["features"]
-            if feature.get("properties", {}).get("id") == first_chip_id
-        ]
-        payload[tile] = chip_bbox_feature[0]["geometry"]
-    return payload
 
 
 def main():
