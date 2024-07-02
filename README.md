@@ -42,6 +42,37 @@ The IP to jupyterlab would be displayed automatically.
 *Notice: If running from EC2 you should replace the ip address by the public DNS of the EC2*
 <br />
 
+## On boarding Bacalhau
+1. Convert to python scripts  Run jupyter nbconvert
+
+```
+jupyter nbconvert workflow.ipynb --to python
+```
+2. Replace interactive input to pre-input
+    - Create `.netrc` with format:
+    ```
+    machine urs.earthdata.nasa.gov
+    login <username>
+    password <password>
+    ```
+
+2. Split script by local data preparer node and Bacalhau node
+
+3. Onboard data source to IPFS
+    Using IPFS desktop to upload cdl raster and get the CID: `QmZM1F8UBC92KKNZqWTrsHT5qXPpvo6pgg7jcYgacEVzJX`
+
+    ```
+    bacalhau docker run -i src=ipfs://QmZM1F8UBC92KKNZqWTrsHT5qXPpvo6pgg7jcYgacEVzJX,dst=/requirements ubuntu ls requirements
+    ```
+
+3. Verify the workflow script
+    ```
+    docker run -it -v /home/zheng/easier-all/data-all:/data/ -v "$(pwd)":/cdl_training_data/ -p 8888:8888 cdl-data
+    ```
+
+4. Compose Bacalhau docker commands
+
+
 ## Requirements
 <br />
 
