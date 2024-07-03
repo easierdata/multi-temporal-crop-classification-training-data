@@ -351,13 +351,20 @@ def main():
     print(f"There are a total of {len(tiles)} tiles that will be processed.")
 
     # Query the tiles based on the bounding box of the chips
-    search_results = run_stac_search(chip_df, chips_bbox)
+    # search_results = run_stac_search(chip_df, chips_bbox)
 
-    # # Filter results for testing purposes
-    # search_results = run_stac_search(chip_df.head(3), chips_bbox)
-    # search_results = {
-    #     tile: search_results[tile] for tile in itertools.islice(search_results, 3)
-    # }
+    ### .........................................................................................
+    ### Filter results for testing purposes .....................................................
+    # Filter out line `search_results = run_stac_search(chip_df, chips_bbox)` if you want to
+    # process with just a subset of tiles
+    filter_count = 2
+    search_results = run_stac_search(chip_df.head(filter_count), chips_bbox)
+    search_results = {
+        tile: search_results[tile]
+        for tile in itertools.islice(search_results, filter_count)
+    }
+    tiles = tiles[:filter_count]
+    ### .........................................................................................
 
     print("Processing the search results...")
     try:
