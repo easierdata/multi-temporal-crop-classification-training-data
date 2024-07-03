@@ -83,6 +83,7 @@ def parse_content(search_result_json: Dict[str, Any]) -> Dict[str, Any]:
     # Create a dictionary to store the tile details
     tile_details: Dict[str, Any] = {}
     tile_details["title_id"] = search_result_json["GranuleUR"]
+    tile_details["tile_id"] = tile_details["title_id"].split(".")[2]
 
     # Extract additional attributes from the search result
     additional_attributes = search_result_json["AdditionalAttributes"]
