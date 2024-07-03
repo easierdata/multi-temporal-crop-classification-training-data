@@ -273,7 +273,7 @@ def main():
     with open(BB_CHIP_PAYLOAD, "r") as file:
         chips = json.load(file)
 
-    tiles_to_chip = track_df.tile.unique().tolist()
+    tiles_to_chip = track_df.tile_id.unique().tolist()
     with open(BB_CHIP_5070_PAYLOAD, "r") as file_chip:
         chipping_js = json.load(file_chip)
 
