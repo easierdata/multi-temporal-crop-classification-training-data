@@ -334,5 +334,5 @@ feature_collection = {
     "features": features,
 }
 
-with open(BB_CHIP_1570_PAYLOAD, "w") as outfile:
+with open(BB_CHIP_5070_PAYLOAD, "w") as outfile:
     json.dump(feature_collection, outfile)
