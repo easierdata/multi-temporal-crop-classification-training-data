@@ -33,7 +33,7 @@ SELECTED_TILES_CSV = Path(DATA_DIR) / "selected_tiles.csv"
 # Coordinates in ESPG:4326
 BB_CHIP_PAYLOAD = Path(REQUIRED_SOURCES) / "bb_chip_payload.geojson"
 # Coordinates in ESPG:5070
-BB_CHIP_5070_PAYLOAD = Path(REQUIRED_SOURCES) / "BB_CHIP_5070_PAYLOAD.geojson"
+BB_CHIP_5070_PAYLOAD = Path(REQUIRED_SOURCES) / "bb_chip_5070_payload.geojson"
 
 # Source files referenced to create the training dataset. These files can be acquired from the links provided if the
 # files are not already present in the `required_sources` directory.
