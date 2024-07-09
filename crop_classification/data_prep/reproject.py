@@ -81,50 +81,29 @@ def reproject_tile(
         cdl_for_reprojection, resampling=resampling_method
     )
 
-    if remove_original:
-        if Path(tile_path).is_file():
-            os.remove(tile_path)
-        xds_new.rio.to_raster(raster_path=tile_path.replace(".tif", ".reproject.tif"))
-    else:
-        xds_new.rio.to_raster(raster_path=tile_path.replace(".tif", ".reproject.tif"))
+    # Extract the filename from the dictionary as to populate the filename with the band ID
+    filename = tile_payload["title_id"]
+    for band in BANDS:
+        tile_path = Path(TILE_DIR) / f"{filename}.{band}.tif"
 
-
-def process_tile(kwargs):
-    remove_original = True
-
-    save_path = kwargs["save_path"]
-    filename = kwargs["filename"]
-    bands = json.loads(kwargs["bands"])
-    cdl_file = kwargs["cdl_file"]
-
-    cdl_ds = rioxarray.open_rasterio(cdl_file, cache=False)
-
-    for band in bands:
-        tile_path = f"{save_path}{filename}.{band}.tif"
         if Path(tile_path).is_file():
             if band == "Fmask":
                 reproject_tile(
                     tile_path,
-                    cdl_ds,
-                    remove_original,
                     resampling_method=Resampling.nearest,
                 )
             else:
-                reproject_tile(tile_path, cdl_ds, remove_original)
+                reproject_tile(tile_path, remove_original)
 
 
 def main():
     # Loads the track_df file and adds the cdl_file and bands columns
-    # TODO - Add argparse param for passing in the path to the dataframe object
     track_df = pd.read_pickle(TILES_DF_PKL)
 
-    # TODO - Add argparse param for passing in the path to the cdl file. If it is not passed in, use the default path should
-    # point to the CDL file in the data folder.
-    track_df["cdl_file"] = CDL_SOURCE
+    # TODO - Add argparse param for passing in the original file should be removed
+    remove_original = False
+    track_df["remove_original"] = remove_original
 
-    track_df["bands"] = json.dumps(BANDS)
-
-    # Reprojects HLS tiles to the same CRS as CDL
     with mp.Pool(processes=PROCESSES) as pool:
         pool.map(process_tile, track_df.to_dict("records"))
 
