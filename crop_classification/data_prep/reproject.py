@@ -59,27 +59,36 @@ def reproject_tile(
     - resampling_method: The method that rioxarray use to reproject, default is bilinear
     """
 
-    xds = rioxarray.open_rasterio(tile_path)
-    half_scene_len = np.abs(np.round((xds.x.max().data - xds.x.min().data) / 2))
-    coor_min = transform_point(
-        [xds.x.min().data - half_scene_len, xds.y.min().data - half_scene_len],
-        xds.rio.crs,
-    )
-    coor_max = transform_point(
-        [xds.x.max().data + half_scene_len, xds.y.max().data + half_scene_len],
-        xds.rio.crs,
-    )
+    cdl_ds = rioxarray.open_rasterio(CDL_SOURCE, cache=False)
 
-    x0 = get_nearest_value(cdl_ds.x.data, coor_min[0])
-    y0 = get_nearest_value(cdl_ds.y.data, coor_min[1])
-    x1 = get_nearest_value(cdl_ds.x.data, coor_max[0])
-    y1 = get_nearest_value(cdl_ds.y.data, coor_max[1])
+    # Open the tile and reproject it to the same CRS as the CDL
+    # Handling file operations using the `with` statement as a context manager
+    with rioxarray.open_rasterio(tile_path) as xds:
+        half_scene_len = np.abs(np.round((xds.x.max().data - xds.x.min().data) / 2))
+        coor_min = transform_point(
+            [xds.x.min().data - half_scene_len, xds.y.min().data - half_scene_len],
+            xds.rio.crs,
+        )
+        coor_max = transform_point(
+            [xds.x.max().data + half_scene_len, xds.y.max().data + half_scene_len],
+            xds.rio.crs,
+        )
 
-    cdl_for_reprojection = cdl_ds.rio.slice_xy(x0, y0, x1, y1)
+        x0 = get_nearest_value(cdl_ds.x.data, coor_min[0])
+        y0 = get_nearest_value(cdl_ds.y.data, coor_min[1])
+        x1 = get_nearest_value(cdl_ds.x.data, coor_max[0])
+        y1 = get_nearest_value(cdl_ds.y.data, coor_max[1])
 
-    xds_new = xds.rio.reproject_match(
-        cdl_for_reprojection, resampling=resampling_method
-    )
+        cdl_for_reprojection = cdl_ds.rio.slice_xy(x0, y0, x1, y1)
+
+        xds_new = xds.rio.reproject_match(
+            cdl_for_reprojection, resampling=resampling_method
+        )
+
+    # Save the reprojected tile to reprojected directory as not to interfere with the original tiles
+    reprojected_tile_path = Path(TILE_REPROJECTED_DIR) / tile_path.name
+    xds_new.rio.to_raster(reprojected_tile_path)
+
 
 def process_tile(tile_payload):
     """
