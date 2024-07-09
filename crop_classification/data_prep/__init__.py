@@ -15,8 +15,9 @@ MISC_DIR = Path(DATA_DIR) / "misc"
 REQUIRED_SOURCES = Path(DATA_DIR) / "required_sources"
 
 # Define the paths to the training dataset directories
-CHIP_DIR = Path(TRAINING_DATASET_PATH) / "chips"
 TILE_DIR = Path(TRAINING_DATASET_PATH) / "tiles"
+TILE_REPROJECTED_DIR = Path(TRAINING_DATASET_PATH) / "tiles_reprojected"
+CHIP_DIR = Path(TRAINING_DATASET_PATH) / "chips"
 FMASK_DIR = Path(TRAINING_DATASET_PATH) / "chips_fmask"
 FILTERED_DIR = Path(TRAINING_DATASET_PATH) / "chips_filtered"
 
