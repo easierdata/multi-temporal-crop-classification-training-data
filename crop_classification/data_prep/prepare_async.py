@@ -335,6 +335,55 @@ async def fetch_page(session: aiohttp.ClientSession, url: str) -> None | str:
             return await response.json()
 
 
+### Filter based on spatial coverage
+def spatial_filtering(dataframe):
+    """
+    Using spatial coverage percentage to filter chips
+
+    Args:
+        dataframe: A pandas dataframe that generated previously
+    """
+    cover_list = [100, 90, 80, 70, 60, 50]
+    tile_list_ft = []
+    tile_list = dataframe.tile_id.unique().tolist()
+
+    for tile in tqdm.tqdm(tile_list):
+        temp_df = dataframe[dataframe.tile_id == tile]
+        for cover_pct in cover_list:
+
+            temp_df_filtered = temp_df[temp_df.spatial_cover.astype(int) >= cover_pct]
+            if len(temp_df_filtered) >= 3:
+                for i in range(len(temp_df_filtered)):
+                    tile_list_ft.append(temp_df_filtered.iloc[i])
+                break
+
+    tile_df_filtered = pd.DataFrame(tile_list_ft)
+    return tile_df_filtered
+
+
+def select_scenes(dataframe):
+    """
+    Selecting best spatial covered scenes based on timesteps
+
+    Args:
+        dataframe: A pandas dataframe that generated previously
+    """
+    select_tiles = []
+    tile_list = dataframe.tile_id.unique().tolist()
+
+    for tile in tqdm.tqdm(tile_list):
+        temp_df = (
+            dataframe[dataframe.tile_id == tile]
+            .sort_values("date")
+            .reset_index(drop=True)
+        )
+        select_tiles.extend(
+            [temp_df.iloc[0], temp_df.iloc[len(temp_df) // 2], temp_df.iloc[-1]]
+        )
+
+    return pd.DataFrame(select_tiles).reset_index(drop=True)
+
+
 def main():
 
     crawled_results = []
@@ -389,6 +438,12 @@ def main():
             # Write the crawled results to disc
             crawled_results_df = pd.DataFrame(crawled_results)
             crawled_results_df.to_pickle(TILES_DF_PKL)
+
+            cover_df = spatial_filtering(crawled_results_df)
+            selected_tiles = select_scenes(cover_df)
+            # Save for later uses
+            selected_tiles.to_csv(SELECTED_TILES_CSV, index=False)
+
         else:
             print("No results to write to disc")
 
