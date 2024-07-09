@@ -136,8 +136,8 @@ def process_tile(tile_payload):
 
 
 def main():
-    # Loads the track_df file and adds the cdl_file and bands columns
-    track_df = pd.read_pickle(TILES_DF_PKL)
+    # Load in the dataframe containing the selected tiles identified in the `prepare_async.py` script
+    track_df = pd.read_pickle(SELECTED_TILES_PKL)
 
     # TODO - Add argparse param for passing in the original file should be removed
     remove_original = False
