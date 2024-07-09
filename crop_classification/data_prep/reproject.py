@@ -27,25 +27,40 @@ PROCESSES = 5
 BANDS = ["B02", "B03", "B04", "B8A", "B11", "B12", "Fmask"]
 
 
-# Functions
 def transform_point(coor, src_crs, target_crs=TARGET_CRS):
-    # Transforms a point from one coordinate system to another
+    """
+    Transforms a point from one coordinate system to another.
+
+    Args:
+        coor (tuple): The coordinates of the point to be transformed.
+        src_crs (str): The source coordinate reference system (CRS) of the point.
+        target_crs (str, optional): The target CRS to transform the point to. Defaults to TARGET_CRS.
+
+    Returns:
+        tuple: The transformed coordinates of the point.
+    """
     proj = pyproj.Transformer.from_crs(src_crs, target_crs, always_xy=True)
     return proj.transform(coor[0], coor[1])
 
 
 def get_nearest_value(array, value):
-    # Finds the value in the array that is closest to the given value
+    """
+    Finds the value in the array that is closest to the given value.
+
+    Parameters:
+    array (numpy.ndarray): The input array.
+    value (float): The value to find the closest match for.
+
+    Returns:
+    float: The value in the array that is closest to the given value.
+    """
     idx = (np.abs(array - value)).argmin()
     return array[idx]
 
 
-def reproject_tile(
-    tile_path, cdl_ds, remove_original=False, resampling_method=RESAMPLING_METHOD
-):
+def reproject_tile(tile_path, resampling_method=RESAMPLING_METHOD):
     """
-    This function receives the path to a specific HLS tile and reproject it to the targeting crs_ds.
-    The option of removing the raw HLS tile is provided
+    This function receives the path to a specific HLS tile and reproject it to the coordinate system defined with `TARGET_CRS`.
 
     Assumptions:
     - tile_path is a full path that end with .tif
@@ -54,8 +69,6 @@ def reproject_tile(
 
     Inputs:
     - tile_path: The full path to a specific HLS tile
-    - target_crs: The crs that you wish to reproject the tile to, default is EPSG 4326
-    - remove_original: The option to remove raw HLS tile after reprojecting, default is True
     - resampling_method: The method that rioxarray use to reproject, default is bilinear
     """
 
