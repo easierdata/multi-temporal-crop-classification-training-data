@@ -9,9 +9,8 @@ import numpy as np
 import multiprocessing as mp
 import rioxarray
 
-# The code cell is used to add the src directory to the Python path, making
+# used to add the src directory to the Python path, making
 # it possible to import modules from that directory.
-
 module_path = module_path = os.path.abspath(Path(__file__).parent.parent.resolve())
 sys.path.insert(0, module_path)
 try:
