@@ -81,6 +81,20 @@ def reproject_tile(
         cdl_for_reprojection, resampling=resampling_method
     )
 
+def process_tile(tile_payload):
+    """
+    Process a tile by reprojecting the bands.
+
+    Args:
+        tile_payload (dict): A dictionary containing information about the tile.
+
+    Returns:
+        None
+    """
+
+    if "remove_original" in tile_payload:
+        remove_original = tile_payload["remove_original"]
+
     # Extract the filename from the dictionary as to populate the filename with the band ID
     filename = tile_payload["title_id"]
     for band in BANDS:
@@ -94,6 +108,10 @@ def reproject_tile(
                 )
             else:
                 reproject_tile(tile_path, remove_original)
+
+        if remove_original:
+            if Path(tile_path).is_file():
+                os.remove(tile_path)
 
 
 def main():
