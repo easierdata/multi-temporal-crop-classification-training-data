@@ -1,5 +1,6 @@
 # Ignore raw CDL data
 /raw_cdl
+2022_30m_cdls*
 .DS_Store
 .ipynb_checkpoints/
 data/.DS_Store
