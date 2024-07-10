@@ -40,11 +40,16 @@ BB_CHIP_5070_PAYLOAD = Path(REQUIRED_SOURCES) / "bb_chip_5070_payload.geojson"
 
 # Source files referenced to create the training dataset. These files can be acquired from the links provided if the
 # files are not already present in the `required_sources` directory.
-# https://sentinel.esa.int/web/sentinel/missions/sentinel-2/data-products
+HLS_KML_LINK = "https://sentinel.esa.int/web/sentinel/missions/sentinel-2/data-products"
 HLS_KML_FILE = Path(REQUIRED_SOURCES) / "sentinel_tile_grid.kml"
-# https://www.nass.usda.gov/Research_and_Science/Cropland/Release/index.php
+CDL_SOURCE_LINK = (
+    "https://www.nass.usda.gov/Research_and_Science/Cropland/Release/index.php"
+)
 CDL_SOURCE = Path(REQUIRED_SOURCES) / "2022_30m_cdls.tif"
 # CDL class properties: https://www.nass.usda.gov/Research_and_Science/Cropland/sarsfaqs2.php#what.7
+CLD_CLASS_LINK = (
+    "https://www.nass.usda.gov/Research_and_Science/Cropland/sarsfaqs2.php#what.7"
+)
 CLD_CLASS_PROPERTIES = Path(REQUIRED_SOURCES) / "cdl_classes.csv"
 # Updated CDL class properties with new defined class values See gen_chip_bbox.ipynb for more details
 CLD_RECLASS_PROPERTIES = Path(REQUIRED_SOURCES) / "cdl_total_dst.csv"
@@ -81,9 +86,17 @@ if not TRACK_CHIPS.exists():
     TRACK_CHIPS.touch()
 if not TRACK_TILES.exists():
     TRACK_TILES.touch()
+
+# Ensure that the required source files exist
 if not HLS_KML_FILE.exists():
-    HLS_KML_FILE.touch()
+    print(
+        f"Please download the Sentinel Tile from {HLS_KML_LINK} and place it in {REQUIRED_SOURCES}"
+    )
 if not CDL_SOURCE.exists():
-    CDL_SOURCE.touch()
+    print(
+        f"Please download the Sentinel Tile from {CDL_SOURCE_LINK} and place it in {REQUIRED_SOURCES}"
+    )
 if not CLD_RECLASS_PROPERTIES.exists():
-    CLD_RECLASS_PROPERTIES.touch()
+    print(
+        f"Please download the CDL class properties from {CLD_CLASS_LINK} and place it in {REQUIRED_SOURCES}"
+    )
