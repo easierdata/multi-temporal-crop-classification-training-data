@@ -92,13 +92,13 @@ if not TRACK_TILES.exists():
 # Ensure that the required source files exist
 if not HLS_KML_FILE.exists():
     print(
-        f"Please download the Sentinel Tile from {HLS_KML_LINK} and place it in {REQUIRED_SOURCES}"
+        f"Please download the Sentinel Tile from {HLS_KML_LINK} and place it in {REQUIRED_SOURCES.resolve()}"
     )
 if not CDL_SOURCE.exists():
     print(
-        f"Please download the Sentinel Tile from {CDL_SOURCE_LINK} and place it in {REQUIRED_SOURCES}"
+        f"Please download the National Cropland data layer from {CDL_SOURCE_LINK} and place it in {REQUIRED_SOURCES.resolve()}"
     )
 if not CLD_RECLASS_PROPERTIES.exists():
     print(
-        f"Please download the CDL class properties from {CLD_CLASS_LINK} and place it in {REQUIRED_SOURCES}"
+        f"Please download the CDL class properties from {CLD_CLASS_LINK} and place it in {REQUIRED_SOURCES.resolve()}"
     )
