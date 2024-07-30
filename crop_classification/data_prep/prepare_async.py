@@ -1,12 +1,16 @@
 import os
+from re import sub
 import sys
 import itertools
+from tkinter import SE
 from typing import Any, Dict, List, Tuple
 from datetime import datetime
 import json
 import aiohttp
 import asyncio
 from pystac_client import Client
+import fiona
+import geopandas
 import requests
 import tqdm
 from pathlib import Path
@@ -39,6 +43,75 @@ CONCURRENCY_LIMIT = 50
 # global variables for the bands of interest and cloud threshold
 BANDS_OF_INTEREST = ["B02", "B03", "B04", "B8A", "B11", "B12", "Fmask"]
 CLOUD_THRES = 5
+
+# Number of chips to select
+SELECTION_SUBSET = None
+
+
+def load_chips_subset(file_path: Path, subset_size: int) -> List[Dict[str, Any]]:
+    """Load a subset of chips from a JSON file."""
+    with open(file_path, "r") as file:
+        chips = json.load(file)
+    if subset_size is not None:
+        chips_subset = chips["features"][:subset_size]
+    else:
+        chips_subset = chips["features"]
+    return chips_subset
+
+
+def save_chip_ids(chip_ids: List[str], file_path: Path) -> None:
+    """Save chip IDs to a JSON file."""
+    with open(file_path, "w") as f:
+        json.dump(chip_ids, f, indent=2)
+
+
+def read_tile_data(kml_file: Path) -> geopandas.GeoDataFrame:
+    """Read and process tile data from a KML file."""
+    fiona.drvsupport.supported_drivers["KML"] = "rw"
+    tile_src = geopandas.read_file(kml_file, driver="KML")
+    return tile_src
+
+
+def find_closest_tile(
+    chip_x: List[float],
+    chip_y: List[float],
+    tile_x: List[float],
+    tile_y: List[float],
+    tile_name: List[str],
+) -> List[str]:
+    """Vectorized operation to find the closest tile for each chip."""
+    distances = (tile_x - chip_x[:, None]) ** 2 + (tile_y - chip_y[:, None]) ** 2
+    closest_indices = distances.argmin(axis=1)
+    return tile_name[closest_indices]
+
+
+def prepare_chip_dataframe(
+    chips: List[Dict[str, Any]], tile_src: geopandas.GeoDataFrame
+) -> pd.DataFrame:
+    """Prepare a DataFrame containing chip and tile information."""
+    chip_df = pd.DataFrame(
+        {
+            "chip_id": [item["properties"]["id"] for item in chips],
+            "chip_x": [item["properties"]["center"][0] for item in chips],
+            "chip_y": [item["properties"]["center"][1] for item in chips],
+        }
+    )
+    tile_name = tile_src["Name"].values
+    tile_x = tile_src.geometry.centroid.x.values
+    tile_y = tile_src.geometry.centroid.y.values
+
+    chip_df["tile"] = find_closest_tile(
+        chip_df["chip_x"].values, chip_df["chip_y"].values, tile_x, tile_y, tile_name
+    )
+    return chip_df
+
+
+def select_tiles_from_chips() -> None:
+    chips_subset = load_chips_subset(BB_CHIP_PAYLOAD, SELECTION_SUBSET)
+    save_chip_ids([chip["properties"]["id"] for chip in chips_subset], CHIPS_ID_JSON)
+    tile_src = read_tile_data(HLS_KML_FILE)
+    chip_df = prepare_chip_dataframe(chips_subset, tile_src)
+    chip_df.to_pickle(CHIPS_DF_PKL)
 
 
 def get_earthdata_auth(auth_type: str = ["netrc", "token"]) -> requests.Session:
@@ -197,7 +270,7 @@ def create_chip_payload(
             for feature in chips_bbox["features"]
             if feature.get("properties", {}).get("id") == first_chip_id
         ]
-        print(first_chip_id,chip_bbox_feature)
+        print(first_chip_id, chip_bbox_feature)
         payload[tile] = chip_bbox_feature[0]["geometry"]
     return payload
 
@@ -390,6 +463,7 @@ def main():
     crawled_results = []
     try:
         # Load the chips_df.pkl file
+        select_tiles_from_chips()
         chip_df = pd.read_pickle(CHIPS_DF_PKL)
         with open(BB_CHIP_PAYLOAD, "r") as f:
             chips_bbox = json.load(f)
@@ -402,20 +476,20 @@ def main():
     print(f"There are a total of {len(tiles)} tiles that will be processed.")
 
     # Query the tiles based on the bounding box of the chips
-    # search_results = run_stac_search(chip_df, chips_bbox)
+    search_results = run_stac_search(chip_df, chips_bbox)
 
-    ### .........................................................................................
-    ### Filter results for testing purposes .....................................................
-    # Filter out line `search_results = run_stac_search(chip_df, chips_bbox)` if you want to
-    # process with just a subset of tiles
-    filter_count = 2
-    search_results = run_stac_search(chip_df.head(filter_count), chips_bbox)
-    search_results = {
-        tile: search_results[tile]
-        for tile in itertools.islice(search_results, filter_count)
-    }
-    tiles = tiles[:filter_count]
-    ### .........................................................................................
+    # ### .........................................................................................
+    # ### Filter results for testing purposes .....................................................
+    # # Filter out line `search_results = run_stac_search(chip_df, chips_bbox)` if you want to
+    # # process with just a subset of tiles
+    # filter_count = 2
+    # search_results = run_stac_search(chip_df.head(filter_count), chips_bbox)
+    # search_results = {
+    #     tile: search_results[tile]
+    #     for tile in itertools.islice(search_results, filter_count)
+    # }
+    # tiles = tiles[:filter_count]
+    # ### .........................................................................................
 
     print("Processing the search results...")
     try:
