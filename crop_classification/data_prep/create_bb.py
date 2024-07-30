@@ -6,11 +6,12 @@ import numpy as np
 import pandas as pd
 import pyproj
 import json
-from shapely.geometry import Polygon
+from shapely.geometry import Polygon, box
 import matplotlib.pyplot as plt
 from numpy.random import choice
 import matplotlib.pyplot as plt
 from pathlib import Path
+import geopandas as gpd
 
 # The code cell is used to add the src directory to the Python path, making
 # it possible to import modules from that directory.
@@ -23,6 +24,35 @@ except ModuleNotFoundError:
     print("Module not found")
     pass
 
+
+def transform_bbox(minx, miny, maxx, maxy, in_crs="EPSG:4326", out_crs="EPSG:5070"):
+  """Transforms a bounding box from one CRS to another.
+
+  Args:
+    minx: Minimum x coordinate (longitude) in the input CRS.
+    miny: Minimum y coordinate (latitude) in the input CRS.
+    maxx: Maximum x coordinate (longitude) in the input CRS.
+    maxy: Maximum y coordinate (latitude) in the input CRS.
+    in_crs: Input Coordinate Reference System (default: EPSG:4326).
+    out_crs: Output Coordinate Reference System (default: EPSG:5070).
+
+  Returns:
+    A list of transformed coordinates (minx, miny, maxx, maxy) in the output CRS.
+  """
+
+  # Create a Shapely box in the input CRS
+  bbox = box(minx, miny, maxx, maxy)
+
+  # Create a GeoSeries with the bounding box
+  gdf = gpd.GeoSeries([bbox], crs=in_crs)
+
+  # Transform to the output CRS
+  gdf = gdf.to_crs(out_crs)
+
+  # Extract the transformed coordinates
+  minx, miny, maxx, maxy = gdf.total_bounds
+
+  return minx, miny, maxx, maxy
 
 def chip_weight(row):
     """
@@ -59,9 +89,9 @@ cdl_class_valid = cdl_class_df[~cdl_class_df["value"].isna()]["class"].values
 xds = rioxarray.open_rasterio(CDL_SOURCE, cache=False)
 
 # Crop the raster file to a bounding box that is set by the user
-xds = xds.rio.clip_box(minx=-1.0, miny=1.0, maxx=1.0, maxy=2.0)
-
-
+minx,miny,maxx,maxy = -79.48700299202991,37.91709878227782,-75.05063561675617,39.72284225191251
+transformed_bbox = transform_bbox(minx, miny, maxx, maxy)
+xds = xds.rio.clip_box(*transformed_bbox)
 # --------------------------------------------------------------------------------------------
 ### CHIPPING
 # --------------------------------------------------------------------------------------------
@@ -105,60 +135,60 @@ for idx in range(0, int(np.floor(xds.shape[2] / chip_dim_x))):
 
 if PLOT:
     plt.bar(cdl_class_valid, chips_df.loc[:, cdl_class_valid].sum())
-    # Inspecting total class distribution and define classes to merge.
-    cdl_total_dst = pd.DataFrame(
-        chips_df.loc[:, cdl_class_valid].sum(), columns=["total_count"]
+# Inspecting total class distribution and define classes to merge.
+cdl_total_dst = pd.DataFrame(
+    chips_df.loc[:, cdl_class_valid].sum(), columns=["total_count"]
+)
+cdl_total_dst["percentage"] = (
+    cdl_total_dst["total_count"] / cdl_total_dst["total_count"].sum()
+)
+cdl_total_dst.sort_values(by="percentage", ascending=False, inplace=True)
+cdl_total_dst["cum_percentage"] = cdl_total_dst["percentage"].cumsum(axis=0)
+cdl_total_dst["class_name"] = np.nan
+for i in cdl_total_dst.iterrows():
+    cdl_total_dst.loc[i[0], "class_name"] = cdl_class_df[
+        cdl_class_df["class"] == i[0]
+    ]["value"].values[0]
+# Do NOT uncomment this. This will overwrite the csv file which contains the column "new_class_value".
+# This column is added manually by inspecting the class distribution, and defines the new class values.
+# cdl_total_dst.to_csv('cdl_total_dst.csv')
+cdl_total_dst = pd.read_csv(CLD_RECLASS_PROPERTIES)
+n_classes = cdl_total_dst["new_class_value"].max()
+chips_df_to_sample = pd.DataFrame(
+    np.zeros((chips_df.shape[0], n_classes)), columns=np.arange(1, n_classes + 1)
+)
+for row in cdl_total_dst.iterrows():
+    chips_df_to_sample.loc[:, row[1]["new_class_value"]] = (
+        chips_df_to_sample.loc[:, row[1]["new_class_value"]]
+        + chips_df.loc[:, row[1]["old_class_value"]]
     )
-    cdl_total_dst["percentage"] = (
-        cdl_total_dst["total_count"] / cdl_total_dst["total_count"].sum()
+chips_df_to_sample["chip_id"] = chips_df["chip_id"]
+chips_df_to_sample["chip_coordinate_x"] = chips_df["chip_coordinate_x"]
+chips_df_to_sample["chip_coordinate_y"] = chips_df["chip_coordinate_y"]
+# The following confirms that the re-classification (merging of similar classes hasn't resulted in any mistake).
+print(
+    np.sum(
+        chips_df_to_sample[
+            [
+                col
+                for col in chips_df_to_sample.columns
+                if col not in ["chip_coordinate_y", "chip_coordinate_x", "chip_id"]
+            ]
+        ].sum()
     )
-    cdl_total_dst.sort_values(by="percentage", ascending=False, inplace=True)
-    cdl_total_dst["cum_percentage"] = cdl_total_dst["percentage"].cumsum(axis=0)
-    cdl_total_dst["class_name"] = np.nan
-    for i in cdl_total_dst.iterrows():
-        cdl_total_dst.loc[i[0], "class_name"] = cdl_class_df[
-            cdl_class_df["class"] == i[0]
-        ]["value"].values[0]
-    # Do NOT uncomment this. This will overwrite the csv file which contains the column "new_class_value".
-    # This column is added manually by inspecting the class distribution, and defines the new class values.
-    # cdl_total_dst.to_csv('cdl_total_dst.csv')
-    cdl_total_dst = pd.read_csv(CLD_RECLASS_PROPERTIES)
-    n_classes = cdl_total_dst["new_class_value"].max()
-    chips_df_to_sample = pd.DataFrame(
-        np.zeros((chips_df.shape[0], n_classes)), columns=np.arange(1, n_classes + 1)
-    )
-    for row in cdl_total_dst.iterrows():
-        chips_df_to_sample.loc[:, row[1]["new_class_value"]] = (
-            chips_df_to_sample.loc[:, row[1]["new_class_value"]]
-            + chips_df.loc[:, row[1]["old_class_value"]]
-        )
-    chips_df_to_sample["chip_id"] = chips_df["chip_id"]
-    chips_df_to_sample["chip_coordinate_x"] = chips_df["chip_coordinate_x"]
-    chips_df_to_sample["chip_coordinate_y"] = chips_df["chip_coordinate_y"]
-    # The following confirms that the re-classification (merging of similar classes hasn't resulted in any mistake).
-    print(
-        np.sum(
-            chips_df_to_sample[
-                [
-                    col
-                    for col in chips_df_to_sample.columns
-                    if col not in ["chip_coordinate_y", "chip_coordinate_x", "chip_id"]
-                ]
-            ].sum()
-        )
-    )
+)
 
-    print(
-        np.sum(
-            chips_df[
-                [
-                    col
-                    for col in chips_df.columns
-                    if col not in ["chip_coordinate_y", "chip_coordinate_x", "chip_id"]
-                ]
-            ].sum()
-        )
+print(
+    np.sum(
+        chips_df[
+            [
+                col
+                for col in chips_df.columns
+                if col not in ["chip_coordinate_y", "chip_coordinate_x", "chip_id"]
+            ]
+        ].sum()
     )
+)
 
 
 # --------------------------------------------------------------------------------------------
@@ -187,31 +217,32 @@ chips_df_to_sample.sort_values(
 )
 
 # check if the files does not exist
-if not CHIPS_TO_SAMPLE:
-    chips_df_to_sample.to_csv(CHIPS_TO_SAMPLE)
-chips_df_to_sample = pd.read_csv(CHIPS_TO_SAMPLE, index_col="index")
-
+if not CHIPS_TO_SAMPLE.exists():
+    chips_df_to_sample.to_pickle(CHIPS_TO_SAMPLE)
+chips_df_to_sample = pd.read_pickle(CHIPS_TO_SAMPLE)
+print('shape of chips',(chips_df_to_sample.shape))
 # --------------------------------------------------------------------------------------------
 ### Generate BBoxes
 # --------------------------------------------------------------------------------------------
 
-
-plt.bar(
-    range(1, n_classes + 1),
-    chips_df_to_sample.iloc[:5000, range(0, n_classes)].sum()
-    / np.sum(chips_df_to_sample.iloc[:5000, range(0, n_classes)].sum()),
-)
-class_per = chips_df_to_sample.iloc[:5000, range(0, n_classes)].sum() / np.sum(
-    chips_df_to_sample.iloc[:5000, range(0, n_classes)].sum()
+if PLOT:
+    plt.bar(
+        range(1, n_classes + 1),
+        chips_df_to_sample.iloc[:N_CHIPS, range(0, n_classes)].sum()
+        / np.sum(chips_df_to_sample.iloc[:N_CHIPS, range(0, n_classes)].sum()),
+    )
+    plt.plot(chips_df_to_sample.iloc[:N_CHIPS, 17], chips_df_to_sample.iloc[:N_CHIPS, 18], "*")
+class_per = chips_df_to_sample.iloc[:N_CHIPS, range(0, n_classes)].sum() / np.sum(
+    chips_df_to_sample.iloc[:N_CHIPS, range(0, n_classes)].sum()
 )
 class_weights = (1.0 / class_per) / np.sum((1.0 / class_per))
 class_weights.to_csv(TASK_CLASS_SAMPLES)
-plt.plot(chips_df_to_sample.iloc[:5000, 17], chips_df_to_sample.iloc[:5000, 18], "*")
+
 features = []
 proj = pyproj.Transformer.from_crs(5070, 4326, always_xy=True)
 chip_height = chip_dim_y * res
 chip_width = chip_dim_x * res
-for row in chips_df_to_sample.iloc[:5000, :].iterrows():
+for row in chips_df_to_sample.iloc[:N_CHIPS, :].iterrows():
     feature_template = [
         {
             "type": "Feature",
@@ -283,7 +314,7 @@ with open(BB_CHIP_PAYLOAD, "w") as outfile:
 features = []
 chip_height = chip_dim_y * res
 chip_width = chip_dim_x * res
-for row in chips_df_to_sample.iloc[:5000, :].iterrows():
+for row in chips_df_to_sample.iloc[:N_CHIPS, :].iterrows():
     feature_template = [
         {
             "type": "Feature",

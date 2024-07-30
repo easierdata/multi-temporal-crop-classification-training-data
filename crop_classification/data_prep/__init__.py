@@ -32,6 +32,7 @@ SELECTED_TILES_CSV = Path(DATA_DIR) / "selected_tiles.csv"
 
 ### --------------------------------------------------------------------------------------------------------------------
 # Files used to create the bounding box for the chips
+N_CHIPS = 500
 # These files are generated using the gen_chip_bbox.ipynb notebook
 # Coordinates in ESPG:4326
 BB_CHIP_PAYLOAD = Path(REQUIRED_SOURCES) / "bb_chip_payload.geojson"
@@ -45,7 +46,7 @@ HLS_KML_FILE = Path(REQUIRED_SOURCES) / "sentinel_tile_grid.kml"
 CDL_SOURCE_LINK = (
     "https://www.nass.usda.gov/Research_and_Science/Cropland/Release/index.php"
 )
-CDL_SOURCE = Path(REQUIRED_SOURCES) / "2022_30m_cdls.tif"
+CDL_SOURCE = Path(REQUIRED_SOURCES) / "2022_30m_cdls/2022_30m_cdls.tif"
 # CDL class properties: https://www.nass.usda.gov/Research_and_Science/Cropland/sarsfaqs2.php#what.7
 CLD_CLASS_LINK = (
     "https://www.nass.usda.gov/Research_and_Science/Cropland/sarsfaqs2.php#what.7"
@@ -75,7 +76,8 @@ if not FMASK_DIR.exists():
     FMASK_DIR.mkdir(parents=True)
 if not TILE_REPROJECTED_DIR.exists():
     TILE_REPROJECTED_DIR.mkdir(parents=True)
-
+if not MISC_DIR.exists():
+    MISC_DIR.mkdir(parents=True)
 
 # Ensure that the training dataset files exist
 if not CHIPS_ID_JSON.exists():
