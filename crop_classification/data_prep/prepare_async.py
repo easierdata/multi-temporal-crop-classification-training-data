@@ -43,13 +43,16 @@ CONCURRENCY_LIMIT = 50
 BANDS_OF_INTEREST = ["B02", "B03", "B04", "B8A", "B11", "B12", "Fmask"]
 CLOUD_THRES = 5
 
-# Number of chips to select
-SELECTION_SUBSET = None
+# Number of chips to select. Not required to modify but useful for testing
+# This variable can be referenced to only select a subset of chips from the BB_CHIP_PAYLOAD file when identifying intersecting tiles.
+# If the value is set to 0, all chips will be used.
+SELECTION_SUBSET = 0
+
+# Default coordinate reference systems for transformations between geographic and projected
+CRS_GEO = "EPSG:4326"
+CRS_PROJ = "EPSG:5070"
 
 
-def load_chips_subset(file_path: Path, subset_size: int) -> List[Dict[str, Any]]:
-    """Load a subset of chips from a JSON file."""
-    with open(file_path, "r") as file:
         chips = json.load(file)
     if subset_size is not None:
         chips_subset = chips["features"][:subset_size]
