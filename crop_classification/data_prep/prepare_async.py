@@ -53,25 +53,34 @@ CRS_GEO = "EPSG:4326"
 CRS_PROJ = "EPSG:5070"
 
 
+def load_chips() -> List[Dict[str, Any]]:
+    """
+    Load chips from a JSON file.  The number of chips to load. If greater than 0, return the number of specified chips from the
+    starting index, otherwise return all chips.
+
+    Returns:
+        List[Dict[str, Any]]: A list of chips, where each chip is represented as a dictionary.
+
+    """
+    with open(BB_CHIP_PAYLOAD, "r") as file:
         chips = json.load(file)
-    if subset_size is not None:
-        chips_subset = chips["features"][:subset_size]
+    if SELECTION_SUBSET > 0:
+        return chips["features"][:SELECTION_SUBSET]
     else:
-        chips_subset = chips["features"]
-    return chips_subset
+        return chips["features"]
 
 
-def save_chip_ids(chip_ids: List[str], file_path: Path) -> None:
+def save_chip_ids(chip_ids: List[str]) -> None:
     """Save chip IDs to a JSON file."""
-    with open(file_path, "w") as f:
+    with open(CHIPS_ID_JSON, "w") as f:
         json.dump(chip_ids, f, indent=2)
 
 
-def read_tile_data(kml_file: Path) -> geopandas.GeoDataFrame:
+def load_sentinel_tile_data() -> geopandas.GeoDataFrame:
     """Read and process tile data from a KML file."""
     fiona.drvsupport.supported_drivers["KML"] = "rw"
-    tile_src = geopandas.read_file(kml_file, driver="KML")
-    return tile_src
+    kml_tile_df = geopandas.read_file(HLS_KML_FILE, driver="KML")
+    return kml_tile_df
 
 
 def find_closest_tile(
