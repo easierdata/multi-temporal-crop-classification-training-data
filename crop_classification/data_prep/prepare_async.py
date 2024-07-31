@@ -274,14 +274,11 @@ def parse_content(search_result_json: Dict[str, Any]) -> Dict[str, Any]:
     return tile_details
 
 
-def run_stac_search(
-    chip_df: pd.DataFrame, chips_bbox: Tuple[float, float, float, float]
-) -> Dict[str, Dict]:
+def run_stac_search(chips_bbox: Tuple[float, float, float, float]) -> Dict[str, Dict]:
     """
-    Perform a parallel search for STAC tiles based on the given chip dataframe and bounding box.
+    Perform a parallel search for STAC tiles based on and bounding box.
 
     Args:
-        chip_df: The chip dataframe containing information about the tiles.
         chips_bbox: The bounding box coordinates (minx, miny, maxx, maxy) for the chips.
 
     Returns:
@@ -290,6 +287,8 @@ def run_stac_search(
     print(
         "Running STAC search to identify all tiles that intersect the chip bounding box."
     )
+
+    chip_df = select_tiles()
 
     tiles = chip_df.tile.unique().tolist()
     chip_payload = create_chip_payload(chip_df, chips_bbox)
@@ -344,7 +343,6 @@ def create_chip_payload(
             for feature in chips_bbox["features"]
             if feature.get("properties", {}).get("id") == first_chip_id
         ]
-        print(first_chip_id, chip_bbox_feature)
         payload[tile] = chip_bbox_feature[0]["geometry"]
     return payload
 
