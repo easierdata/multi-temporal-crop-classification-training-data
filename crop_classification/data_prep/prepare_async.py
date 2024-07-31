@@ -84,36 +84,107 @@ def load_sentinel_tile_data() -> geopandas.GeoDataFrame:
 
 
 def find_closest_tile(
-    chip_x: List[float],
-    chip_y: List[float],
-    tile_x: List[float],
-    tile_y: List[float],
+    chip_coords: geopandas.GeoSeries,
+    tile_coords: geopandas.GeoSeries,
     tile_name: List[str],
 ) -> List[str]:
-    """Vectorized operation to find the closest tile for each chip."""
-    distances = (tile_x - chip_x[:, None]) ** 2 + (tile_y - chip_y[:, None]) ** 2
+    """Vectorized operation to find the closest tile for each chip.
+
+    Args:
+        chip_coords (geopandas.GeoSeries): The coordinates of the chips.
+        tile_coords (geopandas.GeoSeries): The coordinates of the tiles.
+        tile_name (List[str]): The names of the tiles.
+
+    Returns:
+        List[str]: The names of the closest tile for each chip.
+    """
+    # Extract the x and y coordinates for the chips and tiles
+    chip_x = chip_coords.geometry.x.values
+    chip_y = chip_coords.geometry.y.values
+    tile_x = tile_coords.geometry.x.values
+    tile_y = tile_coords.geometry.y.values
+
+    # Perform element-wise subtraction between the arrays of different shapes.  This allows numpy to broadcast chip coordinates
+    # against each tile coordinate.
+    distances = (tile_x - chip_x[:, np.newaxis]) ** 2 + (
+        tile_y - chip_y[:, np.newaxis]
+    ) ** 2
+    # Find the index of the tile with the minimum distance for each chip and return the tile name via the index.
     closest_indices = distances.argmin(axis=1)
     return tile_name[closest_indices]
 
 
-def prepare_chip_dataframe(
-    chips: List[Dict[str, Any]], tile_src: geopandas.GeoDataFrame
+def select_intersecting_features(
+    chips: pd.DataFrame, tile_src: geopandas.GeoDataFrame
 ) -> pd.DataFrame:
-    """Prepare a DataFrame containing chip and tile information."""
-    chip_df = pd.DataFrame(
+    """
+    Identify the closest tile to each chip. Prepare a DataFrame containing intersecting tiles for each chip.
+    Identifying the closest tile to each chip is done by calculating the Euclidean distance between the chip and tile
+    which requires to convert the coordinates to a projected coordinate system for accurate distance calculations.
+
+    Args:
+        chips (pd.DataFrame): A pandas DataFrame representing the chips.
+        tile_src (geopandas.GeoDataFrame): A GeoDataFrame representing the tile source.
+
+    Returns:
+        pd.DataFrame: A DataFrame containing the chip id, chip x/y centroid coordinates and the tile name. Coordinates are in
+        a geographic coordinate system (EPSG:4326).
+    """
+
+    # Convert the chip coordinates to a GeoSeries of Points. The CRS is assumed to be EPSG:4326 (WGS 84) since the the
+    # chip bounding box coordinates are loaded in from `BB_CHIP_PAYLOAD.geojson`
+    chip_points = geopandas.GeoSeries(
+        [Point(x, y) for x, y in zip(chips["chip_x"].values, chips["chip_y"].values)],
+        crs=CRS_GEO,
+    )
+
+    # Convert the tile coordinates to a GeoSeries of Points. The CRS is assumed to be EPSG:4326 (WGS 84) since the tile
+    # coordinates are loaded in from `HLS_Sentinel2_Tiles.kml`
+    tile_points = geopandas.GeoSeries(
+        [
+            Point(x, y)
+            for x, y in zip(
+                tile_src.geometry.centroid.x.values, tile_src.geometry.centroid.y.values
+            )
+        ],
+        crs=CRS_GEO,
+    )
+
+    # Convert the points to a projected coordinate system for accurate distance calculations
+    chip_points_reprojected = chip_points.to_crs(CRS_PROJ)
+    tile_points_reprojected = tile_points.to_crs(CRS_PROJ)
+
+    # Save the closest intersecting tile to each chip. The tile name is used to identify the tile.
+    chips_df = chips.copy()
+    chips_df["tile"] = find_closest_tile(
+        chip_points_reprojected, tile_points_reprojected, tile_src["Name"].values
+    )
+    return chips_df
+
+
+def select_tiles() -> pd.DataFrame:
+    """
+    Selects tiles that intersect with the chips.
+
+    Returns:
+        pd.DataFrame: A DataFrame containing the selected tiles with columns 'chip_id', 'chip_x', and 'chip_y'.
+    """
+    sample_chips = load_chips()
+
+    # Save the chip IDs to a JSON file that will be later used in process_chips.py
+    save_chip_ids([chip["properties"]["id"] for chip in sample_chips])
+
+    # Convert the list of dictionaries to a DataFrame
+    sample_chips_df = pd.DataFrame(
         {
-            "chip_id": [item["properties"]["id"] for item in chips],
-            "chip_x": [item["properties"]["center"][0] for item in chips],
-            "chip_y": [item["properties"]["center"][1] for item in chips],
+            "chip_id": [item["properties"]["id"] for item in sample_chips],
+            "chip_x": [item["properties"]["center"][0] for item in sample_chips],
+            "chip_y": [item["properties"]["center"][1] for item in sample_chips],
         }
     )
-    tile_name = tile_src["Name"].values
-    tile_x = tile_src.geometry.centroid.x.values
-    tile_y = tile_src.geometry.centroid.y.values
-
-    chip_df["tile"] = find_closest_tile(
-        chip_df["chip_x"].values, chip_df["chip_y"].values, tile_x, tile_y, tile_name
-    )
+    tile_grid_df = load_sentinel_tile_data()
+    chip_df = select_intersecting_features(sample_chips_df, tile_grid_df)
+    chip_df.to_pickle(CHIPS_DF_PKL)
     return chip_df
 
 
