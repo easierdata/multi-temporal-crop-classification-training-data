@@ -188,14 +188,6 @@ def select_tiles() -> pd.DataFrame:
     return chip_df
 
 
-def select_tiles_from_chips() -> None:
-    chips_subset = load_chips_subset(BB_CHIP_PAYLOAD, SELECTION_SUBSET)
-    save_chip_ids([chip["properties"]["id"] for chip in chips_subset], CHIPS_ID_JSON)
-    tile_src = read_tile_data(HLS_KML_FILE)
-    chip_df = prepare_chip_dataframe(chips_subset, tile_src)
-    chip_df.to_pickle(CHIPS_DF_PKL)
-
-
 def get_earthdata_auth(auth_type: str = ["netrc", "token"]) -> requests.Session:
     """
     Get the Earthdata authentication token.
@@ -542,38 +534,20 @@ def select_scenes(dataframe):
 
 def main():
 
-    crawled_results = []
+    # Query the tiles based on the bounding box of the chips
+    with open(BB_CHIP_PAYLOAD, "r") as f:
+        chips_bbox = json.load(f)
+    search_results = run_stac_search(chips_bbox)
+
+    # Process the search results by looping through each tile that intersects the chips
     try:
-        # Load the chips_df.pkl file
-        select_tiles_from_chips()
-        chip_df = pd.read_pickle(CHIPS_DF_PKL)
-        with open(BB_CHIP_PAYLOAD, "r") as f:
-            chips_bbox = json.load(f)
+        tiles_intersecting_chips = pd.read_pickle(CHIPS_DF_PKL)
+        tiles = tiles_intersecting_chips.tile.unique().tolist()
     except FileNotFoundError:
         print(f"File not found: {CHIPS_DF_PKL}")
         return
-
-    # Get the unique tiles in the item collection
-    tiles = chip_df.tile.unique().tolist()
-    print(f"There are a total of {len(tiles)} tiles that will be processed.")
-
-    # Query the tiles based on the bounding box of the chips
-    search_results = run_stac_search(chip_df, chips_bbox)
-
-    # ### .........................................................................................
-    # ### Filter results for testing purposes .....................................................
-    # # Filter out line `search_results = run_stac_search(chip_df, chips_bbox)` if you want to
-    # # process with just a subset of tiles
-    # filter_count = 2
-    # search_results = run_stac_search(chip_df.head(filter_count), chips_bbox)
-    # search_results = {
-    #     tile: search_results[tile]
-    #     for tile in itertools.islice(search_results, filter_count)
-    # }
-    # tiles = tiles[:filter_count]
-    # ### .........................................................................................
-
     print("Processing the search results...")
+    crawled_results = []
     try:
         for tile in tiles:
 
