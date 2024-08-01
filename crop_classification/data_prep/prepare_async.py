@@ -1,8 +1,6 @@
 import os
-from re import sub
 import sys
-import itertools
-#from tkinter import SE
+import numpy as np
 from typing import Any, Dict, List, Tuple
 from datetime import datetime
 import json
@@ -15,6 +13,7 @@ import requests
 import tqdm
 from pathlib import Path
 import pandas as pd
+from shapely.geometry import Point
 import concurrent.futures
 import multiprocessing
 
@@ -44,74 +43,149 @@ CONCURRENCY_LIMIT = 50
 BANDS_OF_INTEREST = ["B02", "B03", "B04", "B8A", "B11", "B12", "Fmask"]
 CLOUD_THRES = 5
 
-# Number of chips to select
-SELECTION_SUBSET = None
+# Number of chips to select. Not required to modify but useful for testing
+# This variable can be referenced to only select a subset of chips from the BB_CHIP_PAYLOAD file when identifying intersecting tiles.
+# If the value is set to 0, all chips will be used.
+SELECTION_SUBSET = 0
+
+# Default coordinate reference systems for transformations between geographic and projected
+CRS_GEO = "EPSG:4326"
+CRS_PROJ = "EPSG:5070"
 
 
-def load_chips_subset(file_path: Path, subset_size: int) -> List[Dict[str, Any]]:
-    """Load a subset of chips from a JSON file."""
-    with open(file_path, "r") as file:
+def load_chips() -> List[Dict[str, Any]]:
+    """
+    Load chips from a JSON file.  The number of chips to load. If greater than 0, return the number of specified chips from the
+    starting index, otherwise return all chips.
+
+    Returns:
+        List[Dict[str, Any]]: A list of chips, where each chip is represented as a dictionary.
+
+    """
+    with open(BB_CHIP_PAYLOAD, "r") as file:
         chips = json.load(file)
-    if subset_size is not None:
-        chips_subset = chips["features"][:subset_size]
+    if SELECTION_SUBSET > 0:
+        return chips["features"][:SELECTION_SUBSET]
     else:
-        chips_subset = chips["features"]
-    return chips_subset
+        return chips["features"]
 
 
-def save_chip_ids(chip_ids: List[str], file_path: Path) -> None:
+def save_chip_ids(chip_ids: List[str]) -> None:
     """Save chip IDs to a JSON file."""
-    with open(file_path, "w") as f:
+    with open(CHIPS_ID_JSON, "w") as f:
         json.dump(chip_ids, f, indent=2)
 
 
-def read_tile_data(kml_file: Path) -> geopandas.GeoDataFrame:
+def load_sentinel_tile_data() -> geopandas.GeoDataFrame:
     """Read and process tile data from a KML file."""
     fiona.drvsupport.supported_drivers["KML"] = "rw"
-    tile_src = geopandas.read_file(kml_file, driver="KML")
-    return tile_src
+    kml_tile_df = geopandas.read_file(HLS_KML_FILE, driver="KML")
+    return kml_tile_df
 
 
 def find_closest_tile(
-    chip_x: List[float],
-    chip_y: List[float],
-    tile_x: List[float],
-    tile_y: List[float],
+    chip_coords: geopandas.GeoSeries,
+    tile_coords: geopandas.GeoSeries,
     tile_name: List[str],
 ) -> List[str]:
-    """Vectorized operation to find the closest tile for each chip."""
-    distances = (tile_x - chip_x[:, None]) ** 2 + (tile_y - chip_y[:, None]) ** 2
+    """Vectorized operation to find the closest tile for each chip.
+
+    Args:
+        chip_coords (geopandas.GeoSeries): The coordinates of the chips.
+        tile_coords (geopandas.GeoSeries): The coordinates of the tiles.
+        tile_name (List[str]): The names of the tiles.
+
+    Returns:
+        List[str]: The names of the closest tile for each chip.
+    """
+    # Extract the x and y coordinates for the chips and tiles
+    chip_x = chip_coords.geometry.x.values
+    chip_y = chip_coords.geometry.y.values
+    tile_x = tile_coords.geometry.x.values
+    tile_y = tile_coords.geometry.y.values
+
+    # Perform element-wise subtraction between the arrays of different shapes.  This allows numpy to broadcast chip coordinates
+    # against each tile coordinate.
+    distances = (tile_x - chip_x[:, np.newaxis]) ** 2 + (
+        tile_y - chip_y[:, np.newaxis]
+    ) ** 2
+    # Find the index of the tile with the minimum distance for each chip and return the tile name via the index.
     closest_indices = distances.argmin(axis=1)
     return tile_name[closest_indices]
 
 
-def prepare_chip_dataframe(
-    chips: List[Dict[str, Any]], tile_src: geopandas.GeoDataFrame
+def select_intersecting_features(
+    chips: pd.DataFrame, tile_src: geopandas.GeoDataFrame
 ) -> pd.DataFrame:
-    """Prepare a DataFrame containing chip and tile information."""
-    chip_df = pd.DataFrame(
+    """
+    Identify the closest tile to each chip. Prepare a DataFrame containing intersecting tiles for each chip.
+    Identifying the closest tile to each chip is done by calculating the Euclidean distance between the chip and tile
+    which requires to convert the coordinates to a projected coordinate system for accurate distance calculations.
+
+    Args:
+        chips (pd.DataFrame): A pandas DataFrame representing the chips.
+        tile_src (geopandas.GeoDataFrame): A GeoDataFrame representing the tile source.
+
+    Returns:
+        pd.DataFrame: A DataFrame containing the chip id, chip x/y centroid coordinates and the tile name. Coordinates are in
+        a geographic coordinate system (EPSG:4326).
+    """
+
+    # Convert the chip coordinates to a GeoSeries of Points. The CRS is assumed to be EPSG:4326 (WGS 84) since the the
+    # chip bounding box coordinates are loaded in from `BB_CHIP_PAYLOAD.geojson`
+    chip_points = geopandas.GeoSeries(
+        [Point(x, y) for x, y in zip(chips["chip_x"].values, chips["chip_y"].values)],
+        crs=CRS_GEO,
+    )
+
+    # Convert the tile coordinates to a GeoSeries of Points. The CRS is assumed to be EPSG:4326 (WGS 84) since the tile
+    # coordinates are loaded in from `HLS_Sentinel2_Tiles.kml`
+    tile_points = geopandas.GeoSeries(
+        [
+            Point(x, y)
+            for x, y in zip(
+                tile_src.geometry.centroid.x.values, tile_src.geometry.centroid.y.values
+            )
+        ],
+        crs=CRS_GEO,
+    )
+
+    # Convert the points to a projected coordinate system for accurate distance calculations
+    chip_points_reprojected = chip_points.to_crs(CRS_PROJ)
+    tile_points_reprojected = tile_points.to_crs(CRS_PROJ)
+
+    # Save the closest intersecting tile to each chip. The tile name is used to identify the tile.
+    chips_df = chips.copy()
+    chips_df["tile"] = find_closest_tile(
+        chip_points_reprojected, tile_points_reprojected, tile_src["Name"].values
+    )
+    return chips_df
+
+
+def select_tiles() -> pd.DataFrame:
+    """
+    Selects tiles that intersect with the chips.
+
+    Returns:
+        pd.DataFrame: A DataFrame containing the selected tiles with columns 'chip_id', 'chip_x', and 'chip_y'.
+    """
+    sample_chips = load_chips()
+
+    # Save the chip IDs to a JSON file that will be later used in process_chips.py
+    save_chip_ids([chip["properties"]["id"] for chip in sample_chips])
+
+    # Convert the list of dictionaries to a DataFrame
+    sample_chips_df = pd.DataFrame(
         {
-            "chip_id": [item["properties"]["id"] for item in chips],
-            "chip_x": [item["properties"]["center"][0] for item in chips],
-            "chip_y": [item["properties"]["center"][1] for item in chips],
+            "chip_id": [item["properties"]["id"] for item in sample_chips],
+            "chip_x": [item["properties"]["center"][0] for item in sample_chips],
+            "chip_y": [item["properties"]["center"][1] for item in sample_chips],
         }
     )
-    tile_name = tile_src["Name"].values
-    tile_x = tile_src.geometry.centroid.x.values
-    tile_y = tile_src.geometry.centroid.y.values
-
-    chip_df["tile"] = find_closest_tile(
-        chip_df["chip_x"].values, chip_df["chip_y"].values, tile_x, tile_y, tile_name
-    )
-    return chip_df
-
-
-def select_tiles_from_chips() -> None:
-    chips_subset = load_chips_subset(BB_CHIP_PAYLOAD, SELECTION_SUBSET)
-    save_chip_ids([chip["properties"]["id"] for chip in chips_subset], CHIPS_ID_JSON)
-    tile_src = read_tile_data(HLS_KML_FILE)
-    chip_df = prepare_chip_dataframe(chips_subset, tile_src)
+    tile_grid_df = load_sentinel_tile_data()
+    chip_df = select_intersecting_features(sample_chips_df, tile_grid_df)
     chip_df.to_pickle(CHIPS_DF_PKL)
+    return chip_df
 
 
 def get_earthdata_auth(auth_type: str = ["netrc", "token"]) -> requests.Session:
@@ -200,14 +274,11 @@ def parse_content(search_result_json: Dict[str, Any]) -> Dict[str, Any]:
     return tile_details
 
 
-def run_stac_search(
-    chip_df: pd.DataFrame, chips_bbox: Tuple[float, float, float, float]
-) -> Dict[str, Dict]:
+def run_stac_search(chips_bbox: Tuple[float, float, float, float]) -> Dict[str, Dict]:
     """
-    Perform a parallel search for STAC tiles based on the given chip dataframe and bounding box.
+    Perform a parallel search for STAC tiles based on and bounding box.
 
     Args:
-        chip_df: The chip dataframe containing information about the tiles.
         chips_bbox: The bounding box coordinates (minx, miny, maxx, maxy) for the chips.
 
     Returns:
@@ -216,6 +287,8 @@ def run_stac_search(
     print(
         "Running STAC search to identify all tiles that intersect the chip bounding box."
     )
+
+    chip_df = select_tiles()
 
     tiles = chip_df.tile.unique().tolist()
     chip_payload = create_chip_payload(chip_df, chips_bbox)
@@ -459,38 +532,20 @@ def select_scenes(dataframe):
 
 def main():
 
-    crawled_results = []
+    # Query the tiles based on the bounding box of the chips
+    with open(BB_CHIP_PAYLOAD, "r") as f:
+        chips_bbox = json.load(f)
+    search_results = run_stac_search(chips_bbox)
+
+    # Process the search results by looping through each tile that intersects the chips
     try:
-        # Load the chips_df.pkl file
-        select_tiles_from_chips()
-        chip_df = pd.read_pickle(CHIPS_DF_PKL)
-        with open(BB_CHIP_PAYLOAD, "r") as f:
-            chips_bbox = json.load(f)
+        tiles_intersecting_chips = pd.read_pickle(CHIPS_DF_PKL)
+        tiles = tiles_intersecting_chips.tile.unique().tolist()
     except FileNotFoundError:
         print(f"File not found: {CHIPS_DF_PKL}")
         return
-
-    # Get the unique tiles in the item collection
-    tiles = chip_df.tile.unique().tolist()
-    print(f"There are a total of {len(tiles)} tiles that will be processed.")
-
-    # Query the tiles based on the bounding box of the chips
-    search_results = run_stac_search(chip_df, chips_bbox)
-
-    # ### .........................................................................................
-    # ### Filter results for testing purposes .....................................................
-    # # Filter out line `search_results = run_stac_search(chip_df, chips_bbox)` if you want to
-    # # process with just a subset of tiles
-    # filter_count = 2
-    # search_results = run_stac_search(chip_df.head(filter_count), chips_bbox)
-    # search_results = {
-    #     tile: search_results[tile]
-    #     for tile in itertools.islice(search_results, filter_count)
-    # }
-    # tiles = tiles[:filter_count]
-    # ### .........................................................................................
-
     print("Processing the search results...")
+    crawled_results = []
     try:
         for tile in tiles:
 
