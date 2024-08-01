@@ -2,7 +2,7 @@ import os
 from re import sub
 import sys
 import itertools
-from tkinter import SE
+#from tkinter import SE
 from typing import Any, Dict, List, Tuple
 from datetime import datetime
 import json
@@ -270,7 +270,6 @@ def create_chip_payload(
             for feature in chips_bbox["features"]
             if feature.get("properties", {}).get("id") == first_chip_id
         ]
-        print(first_chip_id, chip_bbox_feature)
         payload[tile] = chip_bbox_feature[0]["geometry"]
     return payload
 

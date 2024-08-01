@@ -1,4 +1,4 @@
-FROM osgeo/gdal:ubuntu-full-3.6.3
+FROM osgeo/gdal:ubuntu-small-3.6.3
 
 ENV LC_ALL=C.UTF-8
 ENV LANG=C.UTF-8
@@ -19,4 +19,4 @@ RUN mkdir ./notebook
 
 EXPOSE 8888
 
-ENTRYPOINT ["jupyter", "lab", "--ip=0.0.0.0", "--allow-root"]
+# ENTRYPOINT ["jupyter", "lab", "--ip=0.0.0.0", "--allow-root"]

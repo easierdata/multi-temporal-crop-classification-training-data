@@ -119,8 +119,8 @@ def process_tile(tile_payload):
     # Extract the filename from the dictionary as to populate the filename with the band ID
     filename = tile_payload["title_id"]
     for band in BANDS:
-        tile_path = Path(TILE_DIR) / f"{filename}.{band}.tif"
-
+        tile_path = Path(TILE_DIR) / f"{filename}/{filename}.{band}.tif"
+        print('processing',tile_path)
         if Path(tile_path).is_file():
             if band == "Fmask":
                 reproject_tile(
@@ -142,7 +142,7 @@ def main():
     # TODO - Add argparse param for passing in the original file should be removed
     remove_original = False
     track_df["remove_original"] = remove_original
-
+    print(track_df.head())
     with mp.Pool(processes=PROCESSES) as pool:
         pool.map(process_tile, track_df.to_dict("records"))
 
