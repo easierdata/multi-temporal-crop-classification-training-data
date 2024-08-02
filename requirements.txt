@@ -10,4 +10,5 @@ xmltodict==0.13.0
 PyYAML==6.0
 jupyterlab==4.2.0
 pystac-client==0.7.1
+ipfs-stac
 git+https://github.com/benmack/nasa_hls.git
