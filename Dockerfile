@@ -14,9 +14,11 @@ RUN python3 -m pip install pystac-client==0.7.1
 COPY ./requirements.txt ./requirements.txt
 RUN pip3 install -r ./requirements.txt
 
-RUN mkdir ./data
-RUN mkdir ./notebook
+RUN git clone https://github.com/easierdata/multi-temporal-crop-classification-training-data.git --branch repo-preparation
+WORKDIR /multi-temporal-crop-classification-training-data
+# RUN mkdir ./data
+# RUN mkdir ./notebook
 
-EXPOSE 8888
+#EXPOSE 8888
 
 # ENTRYPOINT ["jupyter", "lab", "--ip=0.0.0.0", "--allow-root"]

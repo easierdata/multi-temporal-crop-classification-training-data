@@ -137,7 +137,7 @@ def process_tile(tile_payload):
 
 def main():
     # Load in the dataframe containing the selected tiles identified in the `prepare_async.py` script
-    track_df = pd.read_pickle(SELECTED_TILES_PKL)
+    track_df = pd.read_pickle(SELECTED_TILES_PKL)[0:3]
 
     # TODO - Add argparse param for passing in the original file should be removed
     remove_original = False
