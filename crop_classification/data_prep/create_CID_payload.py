@@ -12,9 +12,7 @@ except ModuleNotFoundError:
     print("Module not found")
     pass
 
-tiles = pd.read_pickle(
-    SELECTED_TILES_PKL
-)
+tiles = pd.read_pickle(SELECTED_TILES_PKL)
 # Load the JSON data
 with open(
     MISC_DIR / "hls-imagery-cid-output.json",
@@ -57,9 +55,16 @@ for item in filenames_list:
 # final_mapping now contains your desired mapping
 print(final_mapping)
 
-# export the dictionary to a JSON file
-with open(
-    MISC_DIR / "selected_cid_mapping.json",
-    "w",
-) as file:
-    json.dump(final_mapping, file)
+# Convert the dictionary to a DataFrame and export it to a JSON file
+df = pd.DataFrame(final_mapping.items(), columns=["filename", "cid"])
+df.to_json(
+    Path(MISC_DIR / "selected_cid_mapping.json"),
+    orient="records",
+)
+
+# # export the dictionary to a JSON file
+# with open(
+#     MISC_DIR / "selected_cid_mapping.json",
+#     "w",
+# ) as file:
+#     json.dump(final_mapping, file)
