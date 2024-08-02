@@ -137,12 +137,12 @@ def process_tile(tile_payload):
 
 def main():
     # Load in the dataframe containing the selected tiles identified in the `prepare_async.py` script
-    track_df = pd.read_pickle(SELECTED_TILES_PKL)[0:3]
+    track_df = pd.read_pickle(SELECTED_TILES_PKL)[0:10]
 
     # TODO - Add argparse param for passing in the original file should be removed
     remove_original = False
     track_df["remove_original"] = remove_original
-    print(track_df.head())
+    print(track_df.head(),track_df.shape)
     with mp.Pool(processes=PROCESSES) as pool:
         pool.map(process_tile, track_df.to_dict("records"))
 
