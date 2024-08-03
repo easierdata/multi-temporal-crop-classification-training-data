@@ -1,5 +1,5 @@
 # Custom dataset params
 data_dir: ./data
-train_dataset_name: gather_training_data
+train_dataset_name: training_data
 val_csv_path: ./val_ids.csv
 test_csv_path: ./test_ids.csv
