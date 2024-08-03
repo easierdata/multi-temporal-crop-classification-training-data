@@ -305,6 +305,7 @@ def main():
                     current_id, full_tile_name, shape, selected_tiles_df
                 )
                 chip_info["chip_id"] = current_id
+                chip_info["tile"] = tile
                 chip_data.append(chip_info)
             except:
                 failed_tiles.append(tile)
