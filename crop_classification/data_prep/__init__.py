@@ -41,7 +41,7 @@ BB_CHIP_5070_PAYLOAD = Path(REQUIRED_SOURCES) / "bb_chip_5070_payload.geojson"
 
 # Source files referenced to create the training dataset. These files can be acquired from the links provided if the
 # files are not already present in the `required_sources` directory.
-HLS_KML_LINK = "https://sentinel.esa.int/web/sentinel/missions/sentinel-2/data-products"
+HLS_KML_LINK = "https://sentiwiki.copernicus.eu/__attachments/1692737/S2A_OPER_GIP_TILPAR_MPC__20151209T095117_V20150622T000000_21000101T000000_B00.zip"
 HLS_KML_FILE = Path(REQUIRED_SOURCES) / "sentinel_tile_grid.kml"
 CDL_SOURCE_LINK = (
     "https://www.nass.usda.gov/Research_and_Science/Cropland/Release/index.php"
