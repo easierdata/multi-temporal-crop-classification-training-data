@@ -1,4 +1,5 @@
 import os
+import shutil
 import sys
 import numpy as np
 import rasterio
@@ -311,11 +312,23 @@ def main():
                 print(f"Failed to process chip {current_id} with error {e}")
                 failed_tiles.append(tile)
 
-    chip_df = pd.DataFrame(chip_data)
-    chip_df["bad_pct_max"] = chip_df[
+    chip_data_df = pd.DataFrame(chip_data)
+    chip_data_df["bad_pct_max"] = chip_data_df[
         ["bad_pct_first", "bad_pct_second", "bad_pct_third"]
     ].max(axis=1)
-    chip_df.to_csv(TRACK_CHIPS, index=False)
+    chip_data_df.to_csv(TRACK_CHIPS, index=False)
+
+    # Filter chips with bad_pct_max > 5 and na_count > 0
+    for tile in tiles_to_chip:
+        filtered_chips = chip_data_df[
+            (chip_data_df.tile == tile[1:])
+            & (chip_data_df.bad_pct_max < 5)
+            & (chip_data_df.na_count == 0)
+        ].chip_id.tolist()
+        for chip_id in filtered_chips:
+            chip_files = CHIP_DIR.glob(f"*{chip_id}*")
+            for file in chip_files:
+                shutil.copyfile(file, FILTERED_DIR / file.name)
 
 
 if __name__ == "__main__":
