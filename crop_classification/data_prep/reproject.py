@@ -120,7 +120,7 @@ def process_tile(tile_payload):
     filename = tile_payload["title_id"]
     for band in BANDS:
         tile_path = Path(TILE_DIR) / f"{filename}/{filename}.{band}.tif"
-        print('processing',tile_path)
+        print("processing", tile_path)
         if Path(tile_path).is_file():
             if band == "Fmask":
                 reproject_tile(
@@ -137,12 +137,12 @@ def process_tile(tile_payload):
 
 def main():
     # Load in the dataframe containing the selected tiles identified in the `prepare_async.py` script
-    track_df = pd.read_pickle(SELECTED_TILES_PKL)[0:10]
+    track_df = pd.read_pickle(SELECTED_TILES_PKL)
 
     # TODO - Add argparse param for passing in the original file should be removed
     remove_original = False
     track_df["remove_original"] = remove_original
-    print(track_df.head(),track_df.shape)
+    # print(track_df.head(), track_df.shape)
     with mp.Pool(processes=PROCESSES) as pool:
         pool.map(process_tile, track_df.to_dict("records"))
 
