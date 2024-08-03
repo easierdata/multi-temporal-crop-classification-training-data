@@ -46,7 +46,7 @@ HLS_KML_FILE = Path(REQUIRED_SOURCES) / "sentinel_tile_grid.kml"
 CDL_SOURCE_LINK = (
     "https://www.nass.usda.gov/Research_and_Science/Cropland/Release/index.php"
 )
-CDL_SOURCE = Path(REQUIRED_SOURCES) / "2022_30m_cdls/2022_30m_cdls.tif"
+CDL_SOURCE = Path(REQUIRED_SOURCES) / "2022_30m_cdls.tif"
 # CDL class properties: https://www.nass.usda.gov/Research_and_Science/Cropland/sarsfaqs2.php#what.7
 CLD_CLASS_LINK = (
     "https://www.nass.usda.gov/Research_and_Science/Cropland/sarsfaqs2.php#what.7"
