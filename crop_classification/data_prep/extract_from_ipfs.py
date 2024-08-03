@@ -30,4 +30,8 @@ for item in data_payload:
     if item["cid"] not in CIDs_ON_NODE:
         print(f"{item['cid']} not found. Unable to download {item['filename']}")
         continue
-    ipfs_node.writeCID(item["cid"], TILE_DIR / item["filename"])
+    # Create a directory to store content by scene name if it does not exist
+    SCENE_NAME_DIR = Path(TILE_DIR / item["filename"].rsplit(".", 2)[0])
+    SCENE_NAME_DIR.mkdir(parents=True, exist_ok=True)
+
+    ipfs_node.writeCID(item["cid"], SCENE_NAME_DIR / item["filename"])
