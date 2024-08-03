@@ -10,7 +10,7 @@ DATA_DIR = config["data_dir"]
 TRAINING_DATASET_DIR_NAME = config["train_dataset_name"]
 
 # Construct the path to the training dataset directory by joining the data_dir and train_dataset_name
-TRAINING_DATASET_PATH = Path(DATA_DIR) / TRAINING_DATASET_DIR_NAME
+TRAINING_DATASET_PATH = Path(DATA_DIR) / "download" / TRAINING_DATASET_DIR_NAME
 MISC_DIR = Path(DATA_DIR) / "misc"
 REQUIRED_SOURCES = Path(DATA_DIR) / "required_sources"
 

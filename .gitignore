@@ -8,4 +8,4 @@ data/.DS_Store
 __pycache__/
 
 *.tif
-/data/training_data/
+/data/download/*
