@@ -307,7 +307,8 @@ def main():
                 chip_info["chip_id"] = current_id
                 chip_info["tile"] = tile
                 chip_data.append(chip_info)
-            except:
+            except Exception as e:
+                print(f"Failed to process chip {current_id} with error {e}")
                 failed_tiles.append(tile)
 
     chip_df = pd.DataFrame(chip_data)
