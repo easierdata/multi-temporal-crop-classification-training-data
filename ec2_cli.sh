@@ -9,7 +9,8 @@ docker run -it -v ~/hdd/data-all:/data/ -v "$(pwd)":/cdl_training_data/ -p 8888:
 cd /cdl_training_data/data/required_sources
 wget https://www.nass.usda.gov/Research_and_Science/Cropland/Release/datasets/2022_30m_cdls.zip
 mkdir 2022_30m_cdls
-unzip 2022_30m_cdls.zip -d 2022_30m_cdls
+unzip -j 2022_30m_cdls.zip -d 2022_30m_cdls
+rm -f 2022_30m_cdls.zip
 
 # background running
 docker run --name cdl_data -v ~/hdd/data-all:/data/ -v "$(pwd)":/cdl_training_data/ -p 8888:8888 cdl-data
