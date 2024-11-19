@@ -16,6 +16,7 @@ import pandas as pd
 from shapely.geometry import Point
 import concurrent.futures
 import multiprocessing
+import datetime as dt
 
 # The code cell is used to add the src directory to the Python path, making
 # it possible to import modules from that directory.
@@ -376,16 +377,18 @@ def query_tiles_based_on_bounding_box(chip_bbox: List[float]) -> List[dict]:
         >>> query_tiles_based_on_bounding_box(bbox)
         [{'id': 'tile1', 'name': 'Tile 1'}, {'id': 'tile2', 'name': 'Tile 2'}]
     """
-    # collection_id = "HLSS30_2.0"
-    collection_id = "HLSS30.v2.0"
+    # Formatting the datetime search params
+    start_date = dt.datetime(2022, 3, 1)
+    end_date = dt.datetime(2022, 9, 30)
+    dt_format = "%Y-%m-%dT%H:%M:%SZ"
+    temporal_str = f"{start_date.strftime(dt_format)}/{end_date.strftime(dt_format)}"
 
-    search = catalog.search(
-        collections=["HLSS30.v2.0"],
+    search_results = catalog.search(
+        collections=COLLECTION_ID,
         intersects=chip_bbox,
-        datetime="2022-03-01/2022-09-30",
+        datetime=temporal_str,
     )
-
-    return search.item_collection()
+    return search_results.item_collection()
 
 
 async def crawl_results(search_results: Dict[str, Dict]) -> Dict[str, Any]:
