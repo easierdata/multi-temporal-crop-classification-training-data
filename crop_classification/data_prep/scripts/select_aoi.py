@@ -18,6 +18,9 @@ except ModuleNotFoundError:
     print("Module not found")
     pass
 
+# Default name for the HTML file
+HTML_FILE_NAME = "Select-AOI.html"
+
 # Load the json file
 with open(Path(REQUIRED_SOURCES, "chip_bbox_5070_ORIGINAL.geojson"), "r") as f:
     chip_bbox_5070 = json.load(f)
@@ -79,9 +82,9 @@ m.get_root().header.add_child(
 )
 
 # save the map and read in the HTML content
-m.save("map.html")
+m.save(HTML_FILE_NAME)
 # Read the generated HTML file
-with open("map.html", "r") as f:
+with open(HTML_FILE_NAME, "r") as f:
     html_content = f.read()
 
 # Add custom JavaScript to handle the polygon drawing and feature selection
@@ -119,7 +122,7 @@ custom_js = """
     map.on('draw:created', handleDrawCreated);
 """
 # Replace the placeholders with the actual map and layer IDs
-custom_js = custom_js.replace("map", f"{map_id}")
+custom_js = custom_js.replace("Select-AOI", f"{map_id}")
 custom_js = custom_js.replace("geojson_bbbox_layer", f"{chips_bbox_layer_id}")
 
 # Find the insertion point at the end of the HTML and add the custom JavaScript
@@ -127,5 +130,5 @@ insertion_point = "\n</script>\n</html>".format(m.get_name())
 html_content = html_content.replace(insertion_point, custom_js + "\n" + insertion_point)
 
 # Write the modified HTML content back to the file
-with open("map.html", "w") as f:
+with open(HTML_FILE_NAME, "w") as f:
     f.write(html_content)
