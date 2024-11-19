@@ -52,6 +52,16 @@ SELECTION_SUBSET = 0
 CRS_GEO = "EPSG:4326"
 CRS_PROJ = "EPSG:5070"
 
+# Default STAC properties
+#    Note: The collection_id is set to "HLSS30.v2.0" refers to the `cloudstac` endpoint while "HLSS30_2.0" refers to the `stac` endpoint.
+#          cloudstac endpoint: https://cmr.earthdata.nasa.gov/cloudstac/
+#          stac endpoint: https://cmr.earthdata.nasa.gov/stac/
+ENDPOINT_PROVIDER = "stac"  # or "cloudstac"
+CATALOG = "LPCLOUD"
+COLLECTION_ID = "HLSS30_2.0"  # or "HLSS30.v2.0"
+BASE_STAC_URL = f"https://cmr.earthdata.nasa.gov/{ENDPOINT_PROVIDER}"
+STAC_URL = f"{BASE_STAC_URL}/{CATALOG}/"
+
 
 def load_chips() -> List[Dict[str, Any]]:
     """
@@ -293,13 +303,14 @@ def run_stac_search(chips_bbox: Tuple[float, float, float, float]) -> Dict[str, 
     tiles = chip_df.tile.unique().tolist()
     chip_payload = create_chip_payload(chip_df, chips_bbox)
 
+    catalog = Client.open(STAC_URL)
+
     tile_search_results = {}
     with concurrent.futures.ThreadPoolExecutor() as executor:
         # Submit each tile query as a separate thread
         future_to_tile = {
             executor.submit(
-                query_tiles_based_on_bounding_box,
-                chip_payload[tile],
+                query_tiles_based_on_bounding_box, chip_payload[tile], catalog
             ): tile
             for tile in tiles
         }
@@ -365,9 +376,8 @@ def query_tiles_based_on_bounding_box(chip_bbox: List[float]) -> List[dict]:
         >>> query_tiles_based_on_bounding_box(bbox)
         [{'id': 'tile1', 'name': 'Tile 1'}, {'id': 'tile2', 'name': 'Tile 2'}]
     """
-    # Building STAC url to query tiles
-    STAC_URL = "https://cmr.earthdata.nasa.gov/stac"
-    catalog = Client.open(f"{STAC_URL}/LPCLOUD/")
+    # collection_id = "HLSS30_2.0"
+    collection_id = "HLSS30.v2.0"
 
     search = catalog.search(
         collections=["HLSS30.v2.0"],
