@@ -359,7 +359,9 @@ def create_chip_payload(
     return payload
 
 
-def query_tiles_based_on_bounding_box(chip_bbox: List[float]) -> List[dict]:
+def query_tiles_based_on_bounding_box(
+    chip_bbox: List[float], catalog: Client
+) -> List[dict]:
     """
     Queries tiles based on a given bounding box.
 
@@ -543,7 +545,7 @@ def select_scenes(dataframe):
     return pd.DataFrame(select_tiles).reset_index(drop=True)
 
 
-def main():
+def main() -> None:
 
     # Query the tiles based on the bounding box of the chips
     with open(BB_CHIP_PAYLOAD, "r") as f:
