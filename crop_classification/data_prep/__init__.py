@@ -24,8 +24,8 @@ FILTERED_DIR = Path(TRAINING_DATASET_PATH) / "chips_filtered"
 # Define files paths to processing data
 CHIPS_ID_JSON = Path(DATA_DIR) / "chips_id.json"
 CHIPS_DF_PKL = Path(DATA_DIR) / "chips_df.pkl"
-TILES_DF_PKL = Path(DATA_DIR) / "tiles_df.pkl"
-TILES_DF_CSV = Path(DATA_DIR) / "tiles.csv"
+# TILES_DF_PKL = Path(DATA_DIR) / "tiles_df.pkl"
+# TILES_DF_CSV = Path(DATA_DIR) / "tiles.csv"
 SELECTED_TILES_PKL = Path(DATA_DIR) / "selected_tiles_df.pkl"
 SELECTED_TILES_CSV = Path(DATA_DIR) / "selected_tiles.csv"
 

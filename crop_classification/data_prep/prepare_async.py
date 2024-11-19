@@ -566,8 +566,8 @@ def main():
         if crawled_results:
             # Write the crawled results to disc
             crawled_results_df = pd.DataFrame(crawled_results)
-            crawled_results_df.to_pickle(TILES_DF_PKL)
-            crawled_results_df.to_csv(TILES_DF_CSV, index=False)
+            # crawled_results_df.to_pickle(TILES_DF_PKL)
+            # crawled_results_df.to_csv(TILES_DF_CSV, index=False)
 
             cover_df = spatial_filtering(crawled_results_df)
             selected_tiles = select_scenes(cover_df)
