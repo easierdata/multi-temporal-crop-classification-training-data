@@ -113,26 +113,26 @@ def process_tile(tile_payload):
         None
     """
 
-    if "remove_original" in tile_payload:
-        remove_original = tile_payload["remove_original"]
-
     # Extract the filename from the dictionary as to populate the filename with the band ID
     filename = tile_payload["title_id"]
     for band in BANDS:
         tile_path = Path(TILE_DIR) / f"{filename}/{filename}.{band}.tif"
         print("processing", tile_path)
+        if tile_payload["remove_original"]:
+            if Path(tile_path).is_file():
+                Path.unlink(tile_path)
+
         if Path(tile_path).is_file():
             if band == "Fmask":
                 reproject_tile(
-                    tile_path,
+                    tile_path=tile_path,
                     resampling_method=Resampling.nearest,
                 )
             else:
-                reproject_tile(tile_path, remove_original)
+                reproject_tile(tile_path=tile_path)
 
-        if remove_original:
-            if Path(tile_path).is_file():
-                os.remove(tile_path)
+        elif not Path(tile_path).exists() and not tile_payload["remove_original"]:
+            print(f"Warning: {tile_path.name} does not exist. Skipping reprojecting...")
 
 
 def main():
