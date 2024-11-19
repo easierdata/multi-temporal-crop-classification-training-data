@@ -29,7 +29,7 @@ except ModuleNotFoundError:
 
 # STATIC VARIABLES
 CLOUD_THRES = 5  # percent cloud cover for tile level query
-SELECTION_SUBSET = 100  # number of chips to select
+SELECTION_SUBSET = None  # number of chips to select
 
 
 def find_tile(x, y):
@@ -96,8 +96,9 @@ with open(BB_CHIP_PAYLOAD, "r") as file:
     chips = json.load(file)
 
 # Filter list of chips to just a handful
-chips_subset = chips["features"][:SELECTION_SUBSET]
-chips["features"] = chips_subset
+if SELECTION_SUBSET:
+    chips_subset = chips["features"][:SELECTION_SUBSET]
+    chips["features"] = chips_subset
 
 # Create lists about chip information to find tiles corresponding to it later
 chip_ids = []
