@@ -1,7 +1,7 @@
-import json
 import os
 from pathlib import Path
 import sys
+from typing import Tuple, Union, Dict, Any
 from rasterio.enums import Resampling
 import pyproj
 import pandas as pd
@@ -26,7 +26,9 @@ PROCESSES = 5
 BANDS = ["B02", "B03", "B04", "B8A", "B11", "B12", "Fmask"]
 
 
-def transform_point(coor, src_crs, target_crs=TARGET_CRS):
+def transform_point(
+    coor: Tuple, src_crs: str, target_crs: str = TARGET_CRS
+) -> Tuple[Any, Any]:
     """
     Transforms a point from one coordinate system to another.
 
@@ -42,7 +44,7 @@ def transform_point(coor, src_crs, target_crs=TARGET_CRS):
     return proj.transform(coor[0], coor[1])
 
 
-def get_nearest_value(array, value):
+def get_nearest_value(array: np.ndarray, value: float) -> float:
     """
     Finds the value in the array that is closest to the given value.
 
@@ -57,7 +59,10 @@ def get_nearest_value(array, value):
     return array[idx]
 
 
-def reproject_tile(tile_path, resampling_method=RESAMPLING_METHOD):
+def reproject_tile(
+    tile_path: Union[str, Path],
+    resampling_method: Resampling = RESAMPLING_METHOD,
+) -> None:
     """
     This function receives the path to a specific HLS tile and reproject it to the coordinate system defined with `TARGET_CRS`.
 
@@ -102,7 +107,7 @@ def reproject_tile(tile_path, resampling_method=RESAMPLING_METHOD):
     xds_new.rio.to_raster(reprojected_tile_path)
 
 
-def process_tile(tile_payload):
+def process_tile(tile_payload: Dict) -> None:
     """
     Process a tile by reprojecting the bands.
 
@@ -135,7 +140,7 @@ def process_tile(tile_payload):
             print(f"Warning: {tile_path.name} does not exist. Skipping reprojecting...")
 
 
-def main():
+def main() -> None:
     # Load in the dataframe containing the selected tiles identified in the `prepare_async.py` script
     track_df = pd.read_pickle(SELECTED_TILES_PKL)
 
