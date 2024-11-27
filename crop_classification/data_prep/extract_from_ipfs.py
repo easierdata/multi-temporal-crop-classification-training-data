@@ -14,7 +14,7 @@ except ModuleNotFoundError:
     pass
 
 with open(
-    MISC_DIR / "selected_cid_mapping.json",
+    MISC_DIR / "filename_to_cid_mapping.json",
     "r",
 ) as file:
     data_payload = json.load(file)
