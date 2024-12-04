@@ -2,7 +2,9 @@
 
 ## Introduction
 
-This repository, originally [based](https://github.com/ClarkCGA/multi-temporal-crop-classification-training-data) from [Clark Center for Geospatial Analytics](https://www.clarku.edu/centers/geospatial-analytics/), contains the pipeline to generate data for input into the [multi-temporal crop classification model pipeline](https://github.com/ClarkCGA/multi-temporal-crop-classification-baseline) to fine-tune and test the baseline supervised CNN model or creating a new baseline model from scratch. To generate the data, we use the USDA Cropland Data Layer (CDL) to curate labels and scenes from [NASAs Harmonized Landsat and Sentinel-2](https://hls.gsfc.nasa.gov/) (HLS) product to capture snapshots of time across the growing season.
+This repository, originally [based](https://github.com/ClarkCGA/multi-temporal-crop-classification-training-data) from [Clark Center for Geospatial Analytics](https://www.clarku.edu/centers/geospatial-analytics/), contains the pipeline to generate data for input into the [multi-temporal crop classification model pipeline](https://github.com/ClarkCGA/multi-temporal-crop-classification-baseline) to fine-tune, test or inference using the baseline supervised CNN model or creating a new baseline model from scratch.
+
+Input model data is derived the USDA Cropland Data Layer (CDL) to curate crop type labels and scenes from [NASAs Harmonized Landsat and Sentinel-2](https://hls.gsfc.nasa.gov/) (HLS) to capture snapshots of time across the growing season.
 
 > The dataset is published as part of the [Prithvi 100M](https://arxiv.org/abs/2310.18660) foundation model release on [HuggingFace](https://huggingface.co/datasets/ibm-nasa-geospatial/multi-temporal-crop-classification) and [Source Cooperative](https://beta.source.coop/repositories/clarkcga/multi-temporal-crop-classification/) with an open-access license.
 
@@ -12,7 +14,7 @@ The primary purpose of the data generation pipeline is for training geospatial s
 
 ### Data Access
 
-A selection of scenes from HLS, is available on decentralized networks such as [IPFS](https://ipfs.io/) and [Filecoin](https://filecoin.io/) for resilient and accessible open science collaboration while The python library, ipfs-stac, leverages the [STAC spec](https://stacspec.org/en) to discover content via the [Easier STAC API](https://stac.easierdata.info/) and IPFS for content retrieval.
+A selection of scenes from HLS, is available on decentralized networks such as [IPFS](https://ipfs.io/) and [Filecoin](https://filecoin.io/) for resilient and accessible open science collaboration. The python library, ipfs-stac, leverages the [STAC spec](https://stacspec.org/en) to discover content via the [Easier STAC API](https://stac.easierdata.info/) and IPFS for content retrieval.
 
 > < WHAT OTHER DETAILS DO I NEED TO ADD???>
 
@@ -20,7 +22,7 @@ A selection of scenes from HLS, is available on decentralized networks such as [
 
 ## Data Generation Pipeline
 
-The data generation pipeline is a multi-step process that involves identifying, determining, downloading and processing HLS scenes. The final output of the processed HLS scenes is the input that for the multi-temporal crop classification model.
+The data generation pipeline is a multi-step process that involves identifying, determining, downloading and processing HLS scenes. The final output of the processed HLS scenes is used as the input for running the multi-temporal crop classification model.
 
 Below is an outline of the processes that take place within the data generation pipeline:
 
@@ -61,6 +63,8 @@ This project uses [Poetry](https://python-poetry.org/) for dependency management
    poetry install
    ```
 
+> Need to update repo with poetry content or otherwise modify the above **steps 1-3** for users to pip install the project.
+
 4. Install the IPFS desktop app or Kubo CLI client as this will will allow you to start up a IPFS local node on your machine.
 
 ### Configuration
@@ -83,6 +87,12 @@ The pipeline starts by running the following scripts [found here](./crop_classif
 2. <ADD DOWNLOAD SCRIPT> - This script downloads the HLS scenes from IPFS based on the CSV file generated in the previous step.
 3. [reproject.py](./crop_classification/data_prep/reproject.py) - This script reprojects scene based on the CDL projection.
 4. [process_chips.py](./crop_classification/data_prep/process_chips.py) - This script merges scene bands and clips to chip boundaries. It also discards clipped results that do not meet QA and NA criteria.
+
+---
+
+# DETAILS BELOW WILL NOT BE INCLUDED
+
+WIP: Will be reviewing to figure what what needs to be cherry picked and added to the text above or into the [training data overview](./doc/Training%20Data%20Overview.md) document.
 
 ## Assumptions
 <br />
