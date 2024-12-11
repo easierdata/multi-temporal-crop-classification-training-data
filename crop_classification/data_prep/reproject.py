@@ -25,6 +25,8 @@ PROCESSES = 5
 BANDS = ["B02", "B03", "B04", "B8A", "B11", "B12", "Fmask"]
 OVERWRITE_EXISTING = False
 
+# Global variable for the CDL dataset
+CDL_DS = None
 
 
 def transform_point(
@@ -69,7 +71,7 @@ def reproject_tile(
 
     Assumptions:
     - tile_path is a full path that end with .tif
-    - cdl_ds is a rioxarray dataset that is opened with `cache=False` setting.
+    - CDL_DS is a rioxarray dataset that is opened and will be cached in memory
 
 
     Inputs:
@@ -77,11 +79,12 @@ def reproject_tile(
     - resampling_method: The method that rioxarray use to reproject, default is bilinear
     """
 
-    cdl_ds = rioxarray.open_rasterio(CDL_SOURCE, cache=False)
+    # cdl_ds = rioxarray.open_rasterio(CDL_SOURCE, driver="GTiff", compress="lzw")
+    global CDL_DS
 
     # Open the tile and reproject it to the same CRS as the CDL
     # Handling file operations using the `with` statement as a context manager
-    with rioxarray.open_rasterio(tile_path) as xds:
+    with rioxarray.open_rasterio(tile_path, driver="GTiff", compress="lzw") as xds:
         half_scene_len = np.abs(np.round((xds.x.max().data - xds.x.min().data) / 2))
         coor_min = transform_point(
             [xds.x.min().data - half_scene_len, xds.y.min().data - half_scene_len],
@@ -92,20 +95,20 @@ def reproject_tile(
             xds.rio.crs,
         )
 
-        x0 = get_nearest_value(cdl_ds.x.data, coor_min[0])
-        y0 = get_nearest_value(cdl_ds.y.data, coor_min[1])
-        x1 = get_nearest_value(cdl_ds.x.data, coor_max[0])
-        y1 = get_nearest_value(cdl_ds.y.data, coor_max[1])
+        x0 = get_nearest_value(CDL_DS.x.data, coor_min[0])
+        y0 = get_nearest_value(CDL_DS.y.data, coor_min[1])
+        x1 = get_nearest_value(CDL_DS.x.data, coor_max[0])
+        y1 = get_nearest_value(CDL_DS.y.data, coor_max[1])
 
-        cdl_for_reprojection = cdl_ds.rio.slice_xy(x0, y0, x1, y1)
+        cdl_for_reprojection = CDL_DS.rio.slice_xy(x0, y0, x1, y1)
 
         xds_new = xds.rio.reproject_match(
             cdl_for_reprojection, resampling=resampling_method
         )
 
     # Save the reprojected tile to reprojected directory as not to interfere with the original tiles
-    reprojected_tile_path = Path(TILE_REPROJECTED_DIR) / tile_path.name
-    xds_new.rio.to_raster(reprojected_tile_path)
+    reprojected_tile_path = Path(TILE_REPROJECTED_DIR, tile_path.name)
+    xds_new.rio.to_raster(reprojected_tile_path, driver="GTiff", compress="lzw")
 
 
 def process_tile(tile_payload: Dict) -> None:
@@ -118,6 +121,8 @@ def process_tile(tile_payload: Dict) -> None:
     Returns:
         None
     """
+
+    global CDL_DS
 
     # Extract the filename from the dictionary as to populate the filename with the band ID
     filename = tile_payload["title_id"]
@@ -137,13 +142,15 @@ def process_tile(tile_payload: Dict) -> None:
                 Path.unlink(tile_path)
 
         if Path(tile_path).is_file():
-            if band == "Fmask":
-                reproject_tile(
-                    tile_path=tile_path,
-                    resampling_method=Resampling.nearest,
-                )
-            else:
-                reproject_tile(tile_path=tile_path)
+            try:
+                if band == "Fmask":
+                    reproject_tile(
+                        tile_path=tile_path, resampling_method=Resampling.nearest
+                    )
+                else:
+                    reproject_tile(tile_path=tile_path)
+            except Exception as e:
+                print(f"Failed to reproject {tile_path}: {e}")
 
         elif not Path(tile_path).exists() and not tile_payload["remove_original"]:
             print(f"Warning: {tile_path.name} does not exist. Skipping reprojecting...")
@@ -157,8 +164,19 @@ def main() -> None:
     remove_original = False
     track_df["remove_original"] = remove_original
     # print(track_df.head(), track_df.shape)
-    with mp.Pool(processes=PROCESSES) as pool:
+
+    # Initialize the global CDL dataset
+    initialize_cdl_ds()
+
+    with mp.Pool(processes=PROCESSES, initializer=initialize_cdl_ds) as pool:
         pool.map(process_tile, track_df.to_dict("records"))
+
+
+def initialize_cdl_ds():
+    global CDL_DS
+    CDL_DS = rioxarray.open_rasterio(
+        CDL_SOURCE, cache=True, driver="GTiff", compress="lzw"
+    )
 
 
 if __name__ == "__main__":
