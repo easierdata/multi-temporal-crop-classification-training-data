@@ -23,6 +23,8 @@ TARGET_CRS = "EPSG:5070"
 RESAMPLING_METHOD = Resampling.bilinear
 PROCESSES = 5
 BANDS = ["B02", "B03", "B04", "B8A", "B11", "B12", "Fmask"]
+OVERWRITE_EXISTING = False
+
 
 
 def transform_point(
@@ -121,6 +123,14 @@ def process_tile(tile_payload: Dict) -> None:
     filename = tile_payload["title_id"]
     for band in BANDS:
         tile_path = Path(TILE_DIR) / f"{filename}/{filename}.{band}.tif"
+        reprojected_file_path = Path(TILE_REPROJECTED_DIR, f"{filename}.{band}.tif")
+        if not OVERWRITE_EXISTING:
+            if reprojected_file_path.exists():
+                print(
+                    f"Reprojected file {reprojected_file_path} already exists. Skipping..."
+                )
+                continue
+
         print("processing", tile_path)
         if tile_payload["remove_original"]:
             if Path(tile_path).is_file():
