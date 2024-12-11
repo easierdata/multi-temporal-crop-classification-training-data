@@ -60,13 +60,12 @@ def get_image_paths(tile_info_df):
         filename = tile_info_df.iloc[i].title_id
 
         # Get the paths to the images for each band
-        for band in BANDS:
-            all_date_images.append(
-                Path(TILE_REPROJECTED_DIR) / f"{filename}.{band}.tif"
-            )
+        all_date_images.extend(
+            [Path(TILE_REPROJECTED_DIR, f"{filename}.{band}.tif") for band in BANDS]
+        )
 
         # Add the path to the QA band for each date
-        all_date_qa.append(Path(TILE_REPROJECTED_DIR) / f"{filename}.Fmask.tif")
+        all_date_qa.extend[Path(TILE_REPROJECTED_DIR, f"{filename}.Fmask.tif")]
     return all_date_images, all_date_qa
 
 
