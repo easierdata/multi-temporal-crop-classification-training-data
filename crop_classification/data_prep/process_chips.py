@@ -37,7 +37,10 @@ def crop_multi(x):
 def get_tile_info(chip_tile, all_tiles_df):
     tile_info_df = all_tiles_df[all_tiles_df.tile_id == chip_tile]
     # Ensure that we have 3 images for the tile
-    assert len(tile_info_df) == 3
+    if len(tile_info_df) != 3:
+        raise AssertionError(
+            f"Expected 3 images for tile {chip_tile}, but found {len(tile_info_df)}"
+        )
     first_image_date = tile_info_df.iloc[0].date
     second_image_date = tile_info_df.iloc[1].date
     third_image_date = tile_info_df.iloc[2].date
@@ -211,14 +214,16 @@ def write_cdl_chips(chip_id, out_image, out_transform, out_meta, colormap):
 
 
 def process_chip(chip_id, chip_tile, shape, all_tiles):
-
-    # Select a tile and check to ensure that the tile has 3 images
-    (
-        selected_tile,
-        first_image_date,
-        second_image_date,
-        third_image_date,
-    ) = get_tile_info(chip_tile, all_tiles)
+    try:
+        # Select a tile and check to ensure that the tile has 3 images
+        (
+            selected_tile,
+            first_image_date,
+            second_image_date,
+            third_image_date,
+        ) = get_tile_info(chip_tile, all_tiles)
+    except AssertionError as e:
+        print(f"Error processing tile {chip_tile}: {e}")
 
     # Get the paths to the images and QA files for the tile
     all_date_images, all_date_qa = get_image_paths(selected_tile)
