@@ -107,24 +107,31 @@ def check_qa(
     - shape: 'geometry' property of single polygon feature read by fiona
     - valid_qa: list of integer values that are 'valid' for QA band.
     """
-    with rasterio.open(qa_path) as src:
-        out_image, out_transform = rasterio.mask.mask(src, shape, crop=True)
-        vals = out_image.flatten()
-        unique, counts = np.unique(vals, return_counts=True)
-        qa_df = pd.DataFrame({"qa_val": unique, "counts": counts})
-        qa_df[~qa_df.qa_val.isin(valid_qa)].sort_values(["counts"], ascending=False)
-        qa_df["pct"] = (100 * qa_df["counts"]) / (224.0 * 224.0)
-
-        bad_qa = qa_df[~qa_df.qa_val.isin(valid_qa)].sort_values(
-            ["counts"], ascending=False
-        )
-        if len(bad_qa) > 0:
-            highest_invalid_percent = bad_qa.pct.tolist()[0]
+    try:
+        with rasterio.open(qa_path) as src:
+            out_image, out_transform = rasterio.mask.mask(src, shape, crop=True)
+    except ValueError as e:
+        if str(e) == "Input shapes do not overlap raster.":
+            print("Warning: Input shapes do not overlap raster.")
+            return (0, 0, None)
         else:
-            highest_invalid_percent = 0
-        # ncell = len(vals)
-        valid_count = sum(x in valid_qa for x in vals)
-        return (valid_count, highest_invalid_percent, out_image[0])
+            raise
+    vals = out_image.flatten()
+    unique, counts = np.unique(vals, return_counts=True)
+    qa_df = pd.DataFrame({"qa_val": unique, "counts": counts})
+    qa_df[~qa_df.qa_val.isin(valid_qa)].sort_values(["counts"], ascending=False)
+    qa_df["pct"] = (100 * qa_df["counts"]) / (224.0 * 224.0)
+
+    bad_qa = qa_df[~qa_df.qa_val.isin(valid_qa)].sort_values(
+        ["counts"], ascending=False
+    )
+    if len(bad_qa) > 0:
+        highest_invalid_percent = bad_qa.pct.tolist()[0]
+    else:
+        highest_invalid_percent = 0
+    # ncell = len(vals)
+    valid_count = sum(x in valid_qa for x in vals)
+    return (valid_count, highest_invalid_percent, out_image[0])
 
 
 def get_out_bands(all_date_images, shape):
