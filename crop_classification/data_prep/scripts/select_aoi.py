@@ -1,4 +1,3 @@
-import os
 import json
 from pathlib import Path
 import sys
@@ -8,9 +7,7 @@ import folium.plugins
 
 # used to add the src directory to the Python path, making
 # it possible to import modules from that directory.
-module_path = module_path = os.path.abspath(
-    Path(__file__).parent.parent.parent.resolve()
-)
+module_path = Path(__file__).parent.parent.parent.resolve().as_posix()
 sys.path.insert(0, module_path)
 try:
     from data_prep import *
