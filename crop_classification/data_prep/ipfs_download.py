@@ -3,16 +3,16 @@ import pandas as pd
 from ipfs_stac import client
 import requests
 import tqdm
+import sys
+import json
 
-# Get paths relative to script location
-SCRIPT_DIR = Path(__file__).parent.parent.parent  # crop_classification folder
-DATA_DIR = SCRIPT_DIR / "data"
-
-# Path to input CSV
-CSV_PATH = DATA_DIR / "selected_tiles.csv"
-
-# Path where tiles will be downloaded
-DOWNLOAD_DIR = DATA_DIR / "download" / "training" / "data" / "tiles"
+module_path = Path(__file__).parent.parent.resolve().as_posix()
+sys.path.insert(0, module_path)
+try:
+    from data_prep import *
+except ModuleNotFoundError:
+    print("Module not found")
+    pass
 
 # Constants
 BANDS = ["B02", "B03", "B04", "B8A", "B11", "B12", "Fmask"]
@@ -27,7 +27,7 @@ easier = client.Web3(
 
 def setup_download_directory():
     """Create the nested directory structure for downloads."""
-    DOWNLOAD_DIR.mkdir(parents=True, exist_ok=True)
+    TILE_DIR.mkdir(parents=True, exist_ok=True)
 
 
 def setup_client():
