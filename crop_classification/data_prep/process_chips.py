@@ -240,6 +240,10 @@ def process_chip(chip_id, chip_tile, shape, all_tiles):
         qa_bands,
     ) = check_all_qa(all_date_qa, shape)
 
+    # If any of the QA bands are invalid, return
+    if not valid_first or not valid_second or not valid_third:
+        return
+
     out_bands, out_transform, ouput_metadata = get_out_bands(all_date_images, shape)
 
     ouput_metadata, na_count = write_hls_chips(
