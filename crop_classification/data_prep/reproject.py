@@ -5,8 +5,8 @@ from rasterio.enums import Resampling
 import pyproj
 import pandas as pd
 import numpy as np
-import multiprocessing as mp
 import rioxarray
+from tqdm.contrib.concurrent import process_map
 
 # used to add the src directory to the Python path, making
 # it possible to import modules from that directory.
@@ -26,7 +26,9 @@ BANDS = ["B02", "B03", "B04", "B8A", "B11", "B12", "Fmask"]
 OVERWRITE_EXISTING = False
 
 # Global variable for the CDL dataset
-CDL_DS = None
+CDL_DS = rioxarray.open_rasterio(CDL_SOURCE, cache=True, driver="GTiff", compress="lzw")
+
+# CDL_DS = None
 
 
 def transform_point(
@@ -80,8 +82,7 @@ def reproject_tile(
     """
 
     # cdl_ds = rioxarray.open_rasterio(CDL_SOURCE, driver="GTiff", compress="lzw")
-    global CDL_DS
-
+    # global CDL_DS
     # Open the tile and reproject it to the same CRS as the CDL
     # Handling file operations using the `with` statement as a context manager
     with rioxarray.open_rasterio(tile_path, driver="GTiff", compress="lzw") as xds:
@@ -122,21 +123,24 @@ def process_tile(tile_payload: Dict) -> None:
         None
     """
 
-    global CDL_DS
-
     # Extract the filename from the dictionary as to populate the filename with the band ID
     filename = tile_payload["title_id"]
+
+    # check if tile directory is empty
+    if not list(Path(TILE_DIR).rglob(f"{filename}*.tif")):
+        print(f"No files for {filename}. Skipping...")
+        return
+
     for band in BANDS:
         tile_path = Path(TILE_DIR) / f"{filename}/{filename}.{band}.tif"
         reprojected_file_path = Path(TILE_REPROJECTED_DIR, f"{filename}.{band}.tif")
         if not OVERWRITE_EXISTING:
             if reprojected_file_path.exists():
-                print(
-                    f"Reprojected file {reprojected_file_path} already exists. Skipping..."
-                )
+                # print(
+                #     f"Reprojected file {reprojected_file_path} already exists. Skipping..."
+                # )
                 continue
 
-        print("processing", tile_path)
         if tile_payload["remove_original"]:
             if Path(tile_path).is_file():
                 Path.unlink(tile_path)
@@ -153,7 +157,8 @@ def process_tile(tile_payload: Dict) -> None:
                 print(f"Failed to reproject {tile_path}: {e}")
 
         elif not Path(tile_path).exists() and not tile_payload["remove_original"]:
-            print(f"Warning: {tile_path.name} does not exist. Skipping reprojecting...")
+            print(f"Warning: {tile_path.name} does not exist")
+            continue
 
 
 def main() -> None:
@@ -164,18 +169,11 @@ def main() -> None:
     remove_original = False
     track_df["remove_original"] = remove_original
     # print(track_df.head(), track_df.shape)
-
-    # Initialize the global CDL dataset
-    initialize_cdl_ds()
-
-    with mp.Pool(processes=PROCESSES, initializer=initialize_cdl_ds) as pool:
-        pool.map(process_tile, track_df.to_dict("records"))
-
-
-def initialize_cdl_ds():
-    global CDL_DS
-    CDL_DS = rioxarray.open_rasterio(
-        CDL_SOURCE, cache=True, driver="GTiff", compress="lzw"
+    process_map(
+        process_tile,
+        track_df.to_dict("records"),
+        max_workers=PROCESSES,
+        desc="Processing tiles",
     )
 
 
