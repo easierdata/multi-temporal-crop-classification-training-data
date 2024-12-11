@@ -1,4 +1,3 @@
-import os
 import sys
 import numpy as np
 from typing import Any, Dict, List, Tuple
@@ -21,7 +20,7 @@ import datetime as dt
 # The code cell is used to add the src directory to the Python path, making
 # it possible to import modules from that directory.
 
-module_path = module_path = os.path.abspath(Path(__file__).parent.parent.resolve())
+module_path = Path(__file__).parent.parent.resolve().as_posix()
 sys.path.insert(0, module_path)
 try:
     from data_prep import *
