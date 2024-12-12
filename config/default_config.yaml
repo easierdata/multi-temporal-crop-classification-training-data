@@ -1,5 +1,8 @@
 # Custom dataset params
 data_dir: ./data
-train_dataset_name: training_data
+train_dataset_name: corn-belt
 val_csv_path: ./val_ids.csv
 test_csv_path: ./test_ids.csv
+
+# User defined AOI
+chip_payload_filename: midwest_crops_chip_payload.geojson
