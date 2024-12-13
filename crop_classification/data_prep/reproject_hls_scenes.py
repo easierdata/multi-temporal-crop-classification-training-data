@@ -162,7 +162,7 @@ def process_tile(tile_payload: Dict) -> None:
 
 
 def main() -> None:
-    # Load in the dataframe containing the selected tiles identified in the `prepare_async.py` script
+    # Load in the dataframe containing the selected tiles identified in the `identify_hls_scenes.py` script
     track_df = pd.read_pickle(SELECTED_TILES_PKL)
 
     # TODO - Add argparse param for passing in the original file should be removed

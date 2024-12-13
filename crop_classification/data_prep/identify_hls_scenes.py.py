@@ -181,7 +181,7 @@ def select_tiles() -> pd.DataFrame:
     """
     sample_chips = load_chips()
 
-    # Save the chip IDs to a JSON file that will be later used in process_chips.py
+    # Save the chip IDs to a JSON file that will be later used in generate_training_chips.py
     save_chip_ids([chip["properties"]["id"] for chip in sample_chips])
 
     # Convert the list of dictionaries to a DataFrame
