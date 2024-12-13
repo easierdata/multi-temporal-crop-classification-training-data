@@ -17,72 +17,56 @@ except ModuleNotFoundError:
 # Constants
 BANDS = ["B02", "B03", "B04", "B8A", "B11", "B12", "Fmask"]
 
-easier = client.Web3(
-    # local_gateway="localhost",
-    # gateway_port=8080,
-    # api_port=5001,
-    stac_endpoint="https://stac.easierdata.info"
-)
 
-
-def setup_download_directory():
-    """Create the nested directory structure for downloads."""
-    TILE_DIR.mkdir(parents=True, exist_ok=True)
-
-
-def setup_client():
-    """Create and return the IPFS STAC client."""
-    easier = client.Web3(
-        # local_gateway="localhost",
-        # gateway_port=8080,
-        # api_port=5001,
-        stac_endpoint="https://stac.easierdata.info"
-    )
-
-    try:
-        response = requests.post("http://localhost:5001/api/v0/id")
-        print(f"IPFS connection test: {response.status_code}")
-    except Exception as e:
-        print(f"IPFS connection failed: {e}")
-
-    return easier
+# Pull out all parameters from `IPFS_STAC` that are not empty or None and create a client object
+params = {k: v for k, v in IPFS_STAC.items() if v}
+easier = client.Web3(**params)
 
 
 def process_tile(easier: client.Web3, tile_info: dict) -> None:
 
     title_id = tile_info["title_id"]
-    tile_dir = DOWNLOAD_DIR / title_id
-    tile_dir.mkdir(parents=True, exist_ok=True)
+    scene_dir = Path(TILE_DIR, title_id)
+    scene_dir.mkdir(parents=True, exist_ok=True)
     print(f"\nProcessing tile {title_id}")
 
     try:
         print("Searching STAC...")
         item = easier.searchSTAC(ids=[title_id])
+        # If the item is not found, skip to the next tile
+        if not item:
+            print(
+                f"The item, {title_id}, does not exist in the STAC catalog. Skipping..."
+            )
+            return
 
         for band in BANDS:
-            print(f"Processing band {band}")
+            # print(f"Processing band {band}")
             try:
                 asset = easier.getAssetFromItem(item[0], band)
-                print(f"Asset retrieved successfully {band}")
+                # print(f"Asset retrieved successfully {band}")
                 cid = str(asset)[:59]
                 asset.cid = cid
-                print(f"CID retrieved successfully: {cid}")
-                output_path = tile_dir / f"{title_id}.{band}.tif"
+                # print(f"CID retrieved successfully: {cid}")
+                output_path = scene_dir / f"{title_id}.{band}.tif"
+
+                # create a dictionary to CID payload
 
                 if not output_path.exists():
                     print(f"Attempting to get data for CID: {cid}")
                     try:
-                        # asset.fetch()
-                        data = easier.getFromCID(cid)
-                        # print(f"Fetch successful for {band}")
-                        print(f"Data retrieved successfully for {band}")
-                        with open(output_path, "wb") as f:
-                            f.write(data)
-                        print(f"Downloaded {band} for {title_id}")
+                        if asset.fetch():
+                            # data = easier.getFromCID(cid)
+                            # print(f"Fetch successful for {band}")
+
+                            print(f"Data retrieved successfully for {band}")
+                            with open(output_path, "wb") as f:
+                                f.write(asset.data)
+                            print(f"Downloaded {band} for {title_id}")
                     except Exception as e:
                         print(f"Retrieval error for {band}: {str(e)}")
-                else:
-                    print(f"Skipping {band} for {title_id} - already exists")
+                # else:
+                #     print(f"Skipping {band} for {title_id} - already exists")
             except Exception as e:
                 print(f"Asset error for {band}: {str(e)}")
     except Exception as e:
@@ -91,17 +75,11 @@ def process_tile(easier: client.Web3, tile_info: dict) -> None:
 
 def main():
     """Main function to coordinate the download process."""
-    # Set up download directory
-    setup_download_directory()
-
-    # Initialize IPFS STAC client
-    # easier = setup_client()
-
     # Read the selected tiles
     try:
-        tiles_df = pd.read_csv(CSV_PATH)
+        tiles_df = pd.read_csv(SELECTED_TILES_CSV)
     except FileNotFoundError:
-        print(f"Error: Could not find {CSV_PATH}")
+        print(f"Error: Could not find {SELECTED_TILES_CSV}")
         return
 
     print(f"Found {len(tiles_df)} tiles to download")
