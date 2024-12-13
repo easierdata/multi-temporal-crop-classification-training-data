@@ -1,5 +1,12 @@
+# Ignore all files in the /data folder
+/data/*
+
+# Unignore all directories in the /data folder
+!/data/*/
+
 # Ignore raw CDL data
 /raw_cdl
+
 2022_30m_cdls*
 sentinel_tile_grid*
 .DS_Store
