@@ -6,3 +6,12 @@ test_csv_path: ./test_ids.csv
 
 # User defined AOI
 chip_payload_filename: midwest_crops_chip_payload.geojson
+
+# Fill out the following parameters to use the `ipfs-stac` library to access
+# a STAC endpoint configured with alternate extension with CID support.
+# Leave blank to use the default values
+ipfs_stac_params:
+  stac_endpoint: https://stac.easierdata.info
+  api_port:
+  gateway_port:
+  local_gateway:
