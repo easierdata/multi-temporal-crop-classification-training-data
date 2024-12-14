@@ -1,6 +1,6 @@
 import sys
 import numpy as np
-from typing import Any, Dict, List, Tuple
+from typing import Any, Dict, List, Tuple, Union
 from datetime import datetime
 import json
 import aiohttp
@@ -39,19 +39,6 @@ if NUM_CPUS > 24:
 # Set the concurrency limit for running asynchronous tasks
 CONCURRENCY_LIMIT = 50
 
-# global variables for the bands of interest and cloud threshold
-BANDS_OF_INTEREST = ["B02", "B03", "B04", "B8A", "B11", "B12", "Fmask"]
-CLOUD_THRES = 5
-
-# Number of chips to select. Not required to modify but useful for testing
-# This variable can be referenced to only select a subset of chips from the BB_CHIP_PAYLOAD file when identifying intersecting tiles.
-# If the value is set to 0, all chips will be used.
-SELECTION_SUBSET = 0
-
-# Default coordinate reference systems for transformations between geographic and projected
-CRS_GEO = "EPSG:4326"
-CRS_PROJ = "EPSG:5070"
-
 # Default STAC properties
 #    Note: The collection_id is set to "HLSS30.v2.0" refers to the `cloudstac` endpoint while "HLSS30_2.0" refers to the `stac` endpoint.
 #          cloudstac endpoint: https://cmr.earthdata.nasa.gov/cloudstac/
@@ -74,9 +61,6 @@ def load_chips() -> List[Dict[str, Any]]:
     """
     with open(BB_CHIP_PAYLOAD, "r") as file:
         chips = json.load(file)
-    if SELECTION_SUBSET > 0:
-        return chips["features"][:SELECTION_SUBSET]
-    else:
         return chips["features"]
 
 
@@ -198,7 +182,9 @@ def select_tiles() -> pd.DataFrame:
     return chip_df
 
 
-def get_earthdata_auth(auth_type: str = ["netrc", "token"]) -> requests.Session:
+def get_earthdata_auth(
+    auth_type: str = ["netrc", "token"]
+) -> Tuple[Union[aiohttp.BasicAuth, None], Union[Dict[str, str], None]]:
     """
     Get the Earthdata authentication token.
 
@@ -271,14 +257,10 @@ def parse_content(search_result_json: Dict[str, Any]) -> Dict[str, Any]:
 
     # Only store the urls for the bands of interest
     tile_details["http_links"] = {
-        url["Suffix"]: url["URL"]
-        for url in https_urls
-        if url["Suffix"] in BANDS_OF_INTEREST
+        url["Suffix"]: url["URL"] for url in https_urls if url["Suffix"] in HLS_BANDS
     }
     tile_details["s3_links"] = {
-        url["Suffix"]: url["URL"]
-        for url in s3_urls
-        if url["Suffix"] in BANDS_OF_INTEREST
+        url["Suffix"]: url["URL"] for url in s3_urls if url["Suffix"] in HLS_BANDS
     }
 
     return tile_details

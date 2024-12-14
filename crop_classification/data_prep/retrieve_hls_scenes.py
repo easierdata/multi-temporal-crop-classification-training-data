@@ -15,8 +15,6 @@ except ModuleNotFoundError:
     pass
 
 # Constants
-BANDS = ["B02", "B03", "B04", "B8A", "B11", "B12", "Fmask"]
-
 
 # Pull out all parameters from `IPFS_STAC` that are not empty or None and create a client object
 params = {k: v for k, v in IPFS_STAC.items() if v}
@@ -40,7 +38,7 @@ def process_tile(easier: client.Web3, tile_info: dict) -> None:
             )
             return
 
-        for band in BANDS:
+        for band in HLS_BANDS:
             # print(f"Processing band {band}")
             try:
                 asset = easier.getAssetFromItem(item[0], band)

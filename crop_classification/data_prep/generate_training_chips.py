@@ -21,9 +21,6 @@ except ModuleNotFoundError:
     print("Module not found")
     pass
 
-
-# Constants
-BANDS = ["B02", "B03", "B04", "B8A", "B11", "B12"]
 ## set up CDL reclass
 cdl_class_df = pd.read_csv(CLD_RECLASS_PROPERTIES)
 CROP_DICT = dict(zip(cdl_class_df.old_class_value, cdl_class_df.new_class_value))
@@ -60,7 +57,7 @@ def get_image_paths(tile_info_df):
 
         # Get the paths to the images for each band
         all_date_images.extend(
-            [Path(TILE_REPROJECTED_DIR, f"{filename}.{band}.tif") for band in BANDS]
+            [Path(TILE_REPROJECTED_DIR, f"{filename}.{band}.tif") for band in HLS_BANDS]
         )
 
         # Add the path to the QA band for each date

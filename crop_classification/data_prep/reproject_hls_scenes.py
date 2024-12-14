@@ -22,7 +22,6 @@ except ModuleNotFoundError:
 TARGET_CRS = "EPSG:5070"
 RESAMPLING_METHOD = Resampling.bilinear
 PROCESSES = 5
-BANDS = ["B02", "B03", "B04", "B8A", "B11", "B12", "Fmask"]
 OVERWRITE_EXISTING = False
 
 # Global variable for the CDL dataset
@@ -131,7 +130,7 @@ def process_tile(tile_payload: Dict) -> None:
         print(f"No files for {filename}. Skipping...")
         return
 
-    for band in BANDS:
+    for band in HLS_BANDS:
         tile_path = Path(TILE_DIR) / f"{filename}/{filename}.{band}.tif"
         reprojected_file_path = Path(TILE_REPROJECTED_DIR, f"{filename}.{band}.tif")
         if not OVERWRITE_EXISTING:
