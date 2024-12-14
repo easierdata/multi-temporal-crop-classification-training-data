@@ -1,13 +1,17 @@
 # Configuration Properties Summary
 
+The configuration properties are defined in the `config.json` file. The following is a summary of the configuration properties that can be modified to customize the training dataset generation process.
+
 ## Custom Dataset Parameters
 
 - **data_dir**: Specifies the directory where the data is stored. Default is `./data`.
 - **train_dataset_name**: Name of the training dataset. Default is `training_data`.
 
-## User Defined AOI (Area of Interest)
+### User Defined AOI (Area of Interest)
 
-- **chip_payload_filename**: Filename of the GeoJSON file containing the chip payload for the area of interest. Default is `midwest_crops_chip_payload.geojson`.
+- **chip_payload_filename**: Filename of the GeoJSON file containing the chip payload for the area of interest. Setting if this parameter to False, None, or if left empty defaults to the pre-generated training chips, containing 5000 chip boundaries with CONUS Coverage. Default is `midwest_crops_chip_payload.geojson`.
+
+> :eight_spoked_asterisk: Check out the included [web map](../Select-AOI.html) if you would like to select a subset of the chips boundaires to run the model at a smaller scale.
 
 ## ipfs-stac Parameters
 
@@ -19,16 +23,18 @@
 
 ## Training Dataset Parameters
 
-The following parameters define the criteria for creating the training dataset. It's not recommended to change these values unless you are familiar with the data and the requirements for the training dataset. The default values are based on the defined criteria that's defined by Clark CGA's [crop classification training data](https://github.com/ClarkCGA/multi-temporal-crop-classification-training-data) repository.
+The default values are based on the defined criteria that's defined by Clark CGA's [crop classification training data](https://github.com/ClarkCGA/multi-temporal-crop-classification-training-data) repository.
+
+> :warning: The following parameters define the criteria for creating the training dataset. It's not recommended to change these values unless you are familiar with the data and the requirements for the training dataset. 
 
 - **cloud_cover_threshold**: The cloud cover criteria for % total cloud coverage in the entire image. Default is `5`.
 
-## Coordinate Reference Systems
+### Coordinate Reference Systems
 
 - **geographic_crs**: Default coordinate reference system for geographic transformations. Default is `"EPSG:4326"`.
-- **projected_crs**: Default coordinate reference system for projected transformations. Default is `"EPSG:5070"`, which CDL dataset uses.
+- **projected_crs**: Default coordinate reference system for projected transformations, which CDL dataset uses. Default is `"EPSG:5070"`.
 
-## Crop Classification Mapping
+### Crop Classification Mapping
 
 - **class_mapping**: Classification values for the crop type classes.
   - `0`: No Data
@@ -48,6 +54,6 @@ The following parameters define the criteria for creating the training dataset. 
 
 > Note: The classification values are based on the CDL dataset, containing ~200 values, which were reclassified into 13 classes.
 
-## Selected HLS Bands
+### Selected HLS Bands
 
 - **selected_hls_bands**: Selected bands from the Sentinel-2 satellite imagery that will be used to create the training dataset. Default is `["B02", "B03", "B04", "B8A", "B11", "B12", "Fmask"]`.
