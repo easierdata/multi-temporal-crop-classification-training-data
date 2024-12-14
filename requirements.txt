@@ -12,4 +12,5 @@ jupyterlab==4.2.0
 pystac-client
 ipfs-stac
 folium
+scikit-learn
 git+https://github.com/benmack/nasa_hls.git
