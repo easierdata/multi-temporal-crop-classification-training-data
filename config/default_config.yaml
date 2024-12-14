@@ -1,0 +1,46 @@
+# Custom dataset params
+data_dir: ./data
+train_dataset_name: training_data
+
+# Training Chip boundaries from User defined AOI. Setting if this parameter to False, None,
+# or if left empty defaults to the pre-generated training chips, containing 5000 chip boundaries.
+chip_payload_filename: midwest_crops_chip_payload.geojson
+
+# Fill out the following parameters to use the `ipfs-stac` library to access
+# a STAC endpoint configured with alternate extension with CID support.
+# Leave blank to use the default values defined in the `ipfs-stac` library.
+ipfs_stac_params:
+  stac_endpoint: https://stac.easierdata.info
+  api_port:
+  gateway_port:
+  local_gateway:
+
+# Default parameters for the training dataset
+# It's not recommended to change these values unless you want to customize the training dataset
+
+# The cloud cover criteria for % total cloud coverage in entire image
+cloud_cover_threshold: 5
+
+# Default coordinate reference systems for transformations between geographic and projected
+geographic_crs: "EPSG:4326"
+projected_crs: "EPSG:5070"
+
+# Classification values for the crop type classes
+class_mapping:
+  0: No Data
+  1: Natural Vegetation
+  2: Forest
+  3: Corn
+  4: Soybeans
+  5: Wetlands
+  6: Developed/Barren
+  7: Open Water
+  8: Winter Wheat
+  9: Alfalfa
+  10: Fallow/Idle Cropland
+  11: Cotton
+  12: Sorghum
+  13: Other
+
+# Selected bands from the Sentinel-2 satellite imagery that will be used to create the training dataset
+selected_hls_bands: ["B02", "B03", "B04", "B8A", "B11", "B12", "Fmask"]
