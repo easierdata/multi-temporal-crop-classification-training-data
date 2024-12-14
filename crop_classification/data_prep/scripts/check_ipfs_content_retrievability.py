@@ -35,7 +35,14 @@ def main() -> None:
                            "missing_cids.json" cannot be found or opened.
         json.JSONDecodeError: If the input JSON file cannot be parsed.
     """
-    with open(Path(MISC_DIR, "tile_payloads.json"), "r") as file:
+
+    # Read the tile payloads from the JSON file thats created from the `ipfs_cli_donwload.py` script
+    tile_payload_file = Path(MISC_DIR, "tile_payloads.json")
+
+    if not tile_payload_file.exists():
+        raise FileNotFoundError(f"Could not find {tile_payload_file}")
+
+    with open(tile_payload_file, "r") as file:
         data = json.load(file)
 
     # Open the output file
@@ -49,16 +56,13 @@ def main() -> None:
             for asset in scene_data:
                 # check if the CID is in IPFS
                 result = subprocess.run(
-                    ["ipfs", "dag", "stat", asset["cid"]],
+                    ["ipfs", "--timeout", "30s", "block", "stat", asset["cid"]],
                     stdout=subprocess.PIPE,
                     stderr=subprocess.PIPE,
                 )
                 # Check if the error message is in the output
-                if (
-                    "Error: block was not found locally (offline): ipld: could not find"
-                    in result.stderr.decode("utf-8")
-                ):
-                    # if the CID is not in IPFS, write it to the output file
+                if result.returncode == 1:
+                    print(f"Error: {result.stderr.decode('utf-8')}")
                     missing_cid_info = {
                         "scene": scene,
                         "band": asset["band_name"],
