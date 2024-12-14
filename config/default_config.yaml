@@ -2,8 +2,8 @@
 data_dir: ./data
 train_dataset_name: training_data
 
-# Training Chip boundaries from User defined AOI
-# Defaults to the full extent if set to False, None, or is left empty
+# Training Chip boundaries from User defined AOI. Setting if this parameter to False, None,
+# or if left empty defaults to the pre-generated training chips, containing 5000 chip boundaries.
 chip_payload_filename: midwest_crops_chip_payload.geojson
 
 # Fill out the following parameters to use the `ipfs-stac` library to access
