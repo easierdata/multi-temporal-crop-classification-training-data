@@ -9,6 +9,19 @@ with open(
 # ipfs-stac properties
 IPFS_STAC = config["ipfs_stac_params"]
 
+# Crop Classification Mapping
+CROP_CLASS_MAPPING = config["class_mapping"]
+
+# global variables for the bands of interest and cloud threshold
+CLOUD_THRES = config["cloud_cover_threshold"]
+
+# Default coordinate reference systems for transformations between geographic and projected
+CRS_GEO = config["geographic_crs"]
+CRS_PROJ = config["projected_crs"]
+
+# Bands of interest from the Sentinel-2 satellite imagery that will be used to create the training dataset
+HLS_BANDS = config["selected_hls_bands"]
+
 # Construct the paths to the core directories in the `DATA_DIR`
 DATA_DIR = config["data_dir"]
 TRAINING_DATA_ROOT_PATH = Path(DATA_DIR, "training_datasets")
@@ -31,7 +44,9 @@ TILE_DIR.mkdir(parents=True, exist_ok=True)
 FILTERED_DIR.mkdir(parents=True, exist_ok=True)
 FMASK_DIR.mkdir(parents=True, exist_ok=True)
 TILE_REPROJECTED_DIR.mkdir(parents=True, exist_ok=True)
-# MISC_DIR.mkdir(parents=True, exist_ok=True)
+MISC_DIR.mkdir(parents=True, exist_ok=True)
+
+
 ### --------------------------------------------------------------------------------------------------------------------
 
 
