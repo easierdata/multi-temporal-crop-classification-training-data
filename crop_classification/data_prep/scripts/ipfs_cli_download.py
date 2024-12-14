@@ -15,9 +15,6 @@ except ModuleNotFoundError:
     print("Module not found")
     pass
 
-# Constants
-BANDS = ["B02", "B03", "B04", "B8A", "B11", "B12", "Fmask"]
-
 
 # Pull out all parameters from `IPFS_STAC` that are not empty or None and create a client object
 params = {k: v for k, v in IPFS_STAC.items() if v}
@@ -77,14 +74,13 @@ def create_tile_payload(easier: client.Web3, tile_info: Dict) -> Union[Dict, Non
     tile_payload = []
 
     try:
-        print("Searching STAC...")
         item = easier.searchSTAC(ids=[title_id])
         # If the item is not found, return an empty dictionary
         if not item:
-            print(f"The item, {title_id}, does not exist in the STAC catalog.")
+            print(f"\nThe item, {title_id}, does not exist in the STAC catalog.")
             return None
 
-        for band in BANDS:
+        for band in HLS_BANDS:
             try:
                 asset = easier.getAssetFromItem(item[0], band)
                 cid = str(asset)[:59]
@@ -103,9 +99,18 @@ def create_tile_payload(easier: client.Web3, tile_info: Dict) -> Union[Dict, Non
     return tile_payload
 
 
-def main():
-    """Main function to coordinate the download process."""
-
+def main() -> None:
+    """
+    Main function to read selected tiles, create payloads, and retrieve assets.
+    This function performs the following steps:
+    1. Reads the selected tiles from a CSV file.
+    2. Creates a JSON file to store tile payload information for each tile.
+    3. Processes each tile to create its payload and stores it in a dictionary.
+    4. Saves the tile payloads to a JSON file.
+    5. Retrieves the assets for each tile using the payload information.
+    If the selected tiles CSV file is not found, an error message is printed and the function returns.
+    If the tile payloads JSON file is not found, an error message is printed and the function returns.
+    """
     # Read the selected tiles
     try:
         tiles_df = pd.read_csv(SELECTED_TILES_CSV)
