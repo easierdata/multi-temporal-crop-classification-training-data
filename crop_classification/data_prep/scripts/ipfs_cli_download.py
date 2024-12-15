@@ -17,7 +17,7 @@ except ModuleNotFoundError:
 
 
 # Pull out all parameters from `IPFS_STAC` that are not empty or None and create a client object
-params = {k: v for k, v in IPFS_STAC.items() if v}
+# params = {k: v for k, v in IPFS_STAC.items() if v}
 # easier = client.Web3(**params)
 
 
@@ -35,7 +35,9 @@ def retrieve_assets(data_payload: Dict) -> None:
     Returns:
         None
     """
-    for scene in tqdm.tqdm(data_payload.keys()):
+    progress_bar = tqdm.tqdm(total=len(data_payload.keys()), mininterval=0.1)
+    # for scene in tqdm.tqdm(data_payload.keys()):
+    for scene in data_payload.keys():
         scene_data = data_payload[scene]
         # Create a directory to store content by scene name if it does not exist
         scene_dir = Path(TILE_DIR, scene)
@@ -56,8 +58,11 @@ def retrieve_assets(data_payload: Dict) -> None:
                 if result.returncode != 0:
                     print(f"Error downloading {cid}")
                     print(result.stderr.decode("utf-8"))
-                else:
-                    print(result.stdout.decode("utf-8"))
+                # else:
+                #     print(result.stdout.decode("utf-8"))
+        progress_bar.update(1)
+
+    progress_bar.close()
 
 
 def main() -> None:
