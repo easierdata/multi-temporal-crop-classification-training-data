@@ -313,6 +313,14 @@ def main():
         """
         )
 
+        # Check if all the files for the tile exist in the `tiles_repojected` directory
+        # There should be a total of 21 files, 7 for each scene
+        tile_files = [f for f in TILE_REPROJECTED_DIR.glob(f"*{tile}*")]
+        if len(tile_files) != 21:
+            print(f"Tile {tile} is missing {21-len(tile_files)} files.")
+            failed_tiles.append(tile)
+            continue
+
         # Tiles contain the prefix 'T' in the chip_df, so we need to remove it
         # and filter the chips to process by the tile
         chips_to_process = chip_df[chip_df.tile == tile[1:]].reset_index(drop=True)
