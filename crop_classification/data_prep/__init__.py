@@ -108,7 +108,6 @@ TASK_CLASS_SAMPLES = Path(MISC_DIR) / "class_weights.csv"
 
 # Ensure that the training dataset files exist
 CHIPS_ID_JSON.touch(exist_ok=True)
-BB_CHIP_PAYLOAD.touch(exist_ok=True)
 TRACK_CHIPS.touch(exist_ok=True)
 TRACK_TILES.touch(exist_ok=True)
 ### --------------------------------------------------------------------------------------------------------------------
