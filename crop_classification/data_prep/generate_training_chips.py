@@ -5,7 +5,7 @@ import rasterio
 import rasterio.mask
 import pandas as pd
 from pathlib import Path
-
+import tqdm
 
 import json
 
@@ -61,7 +61,7 @@ def get_image_paths(tile_info_df):
         )
 
         # Add the path to the QA band for each date
-        all_date_qa.extend[Path(TILE_REPROJECTED_DIR, f"{filename}.Fmask.tif")]
+        all_date_qa.extend([Path(TILE_REPROJECTED_DIR, f"{filename}.Fmask.tif")])
     return all_date_images, all_date_qa
 
 
@@ -295,26 +295,41 @@ def main():
     selected_tiles_df = pd.read_pickle(SELECTED_TILES_PKL)
     tiles_to_chip = selected_tiles_df.tile_id.unique().tolist()
 
-    for tile in tiles_to_chip:
+    # If the track chips file exists, load it in and identify if any additional tiles need to be processed
+    if TRACK_CHIPS.exists():
+        track_df = pd.read_csv(TRACK_CHIPS)
+        # Convert the already processed tiles back to the list, `chip_data`
+        chip_data = track_df.to_dict(orient="records")
+        # Get the tiles that have already been processed
+        tiles_already_processed = track_df.tile.unique().tolist()
+        tiles_to_chip = list(set(tiles_to_chip) - set(tiles_already_processed))
+        print(
+            f"""
+        The file, {TRACK_CHIPS.name} already exists with {len(tiles_already_processed)} tile(s) already processed.
+
+        Continuing with the remaining {len(tiles_to_chip)} tile(s).
+
+        NOTE: If you would like to reprocess all tiles, please delete the file {TRACK_CHIPS.name}.
+        """
+        )
+
+    for tile in tqdm.tqdm(tiles_to_chip, desc="Tiles"):
+        # Check if all the files for the tile exist in the `tiles_repojected` directory
+        # There should be a total of 21 files, 7 for each scene
+        tile_files = [f for f in TILE_REPROJECTED_DIR.glob(f"*{tile}*")]
+        if len(tile_files) != 21:
+            print(f"Tile {tile} is missing {21-len(tile_files)} files.")
+            failed_tiles.append(tile)
+            continue
+
         # Tiles contain the prefix 'T' in the chip_df, so we need to remove it
         # and filter the chips to process by the tile
         chips_to_process = chip_df[chip_df.tile == tile[1:]].reset_index(drop=True)
-        for k in range(len(chips_to_process)):
+        for k in tqdm.tqdm(range(len(chips_to_process)), desc="Chips"):
 
             # Get the chip_id e.g. `chip_184_236` as to identify the index in the chips json
             # and extract the chip details to be processed
             current_id = chips_to_process.chip_id[k]
-
-            # # Check if the files that are created already exist. If there are a total of 3 files that contain the chip_id in the filename, then skip the chip
-            # # otherwise, process the chip.  This is to prevent reprocessing chips that have already been processed
-            # processed_chip_count = len([f for f in CHIP_DIR.glob(f"*{current_id}*")])
-            # processed_chip_count += len([f for f in FMASK_DIR.glob(f"*{current_id}*")])
-            # processed_chip_count += len(
-            #     [f for f in FILTERED_DIR.glob(f"*{current_id}*")]
-            # )
-            # if processed_chip_count == 4:
-            #     print(f"Skipping chip {current_id} as it has already been processed")
-            #     continue
 
             chip_index = chip_ids.index(current_id)
             chip_feature = chipping_js["features"][chip_index]
@@ -343,15 +358,16 @@ def main():
 
     # Filter chips with bad_pct_max > 5 and na_count > 0
     for tile in tiles_to_chip:
-        filtered_chips = chip_data_df[
-            (chip_data_df.tile == tile[1:])
-            & (chip_data_df.bad_pct_max < 5)
-            & (chip_data_df.na_count == 0)
+        # select the subset of rows in the dataframe that match the tile
+        filtered_chips = chip_data_df[tile == chip_data_df.tile]
+        # filter the chips based on the conditions
+        filtered_chips = filtered_chips[
+            (filtered_chips.bad_pct_max < 5) & (filtered_chips.na_count == 0)
         ].chip_id.tolist()
         for chip_id in filtered_chips:
             chip_files = CHIP_DIR.glob(f"*{chip_id}*")
             for file in chip_files:
-                shutil.copyfile(file, FILTERED_DIR / file.name)
+                shutil.copyfile(file, Path(FILTERED_DIR, file.name))
 
 
 if __name__ == "__main__":

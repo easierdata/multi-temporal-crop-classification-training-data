@@ -164,7 +164,16 @@ def main() -> None:
     # Load in the dataframe containing the selected tiles identified in the `identify_hls_scenes.py` script
     track_df = pd.read_pickle(SELECTED_TILES_PKL)
 
-    # TODO - Add argparse param for passing in the original file should be removed
+    # Let's ensure the geojson used to coordinate transformation (EPSG:5070) has been created.
+    # The following script can be manually ran `create_chip_5070_payload.py` script but we run the
+    # script here to ensure that the file is available for reprojecting the imagery.
+    if not Path(BB_CHIP_5070_PAYLOAD).exists():
+        from data_prep.scripts.create_chip_5070_payload import (
+            main as create_chip_5070_payload_main,
+        )
+
+        create_chip_5070_payload_main()
+
     remove_original = False
     track_df["remove_original"] = remove_original
     # print(track_df.head(), track_df.shape)

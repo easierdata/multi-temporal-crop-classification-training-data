@@ -46,6 +46,19 @@ FMASK_DIR.mkdir(parents=True, exist_ok=True)
 TILE_REPROJECTED_DIR.mkdir(parents=True, exist_ok=True)
 MISC_DIR.mkdir(parents=True, exist_ok=True)
 
+# Auxiliary files used to store intermediate results during the data preparation process
+CHIPS_ID_JSON = Path(TRAINING_DATASET_PATH) / "chips_id.json"
+CHIPS_DF_PKL = Path(TRAINING_DATASET_PATH) / "chips_df.pkl"
+SELECTED_TILES_PKL = Path(TRAINING_DATASET_PATH) / "selected_tiles_df.pkl"
+SELECTED_TILES_CSV = Path(TRAINING_DATASET_PATH) / "selected_tiles.csv"
+# CSV File's used to track the progress and details on the chips and tiles
+TRACK_CHIPS = Path(TRAINING_DATASET_PATH) / "track_chips.csv"
+TRACK_TILES = Path(TRAINING_DATASET_PATH) / "track_tiles.csv"
+
+# Ensure that the auxiliary training dataset files exist
+CHIPS_ID_JSON.touch(exist_ok=True)
+# TRACK_CHIPS.touch(exist_ok=True)
+TRACK_TILES.touch(exist_ok=True)
 
 ### --------------------------------------------------------------------------------------------------------------------
 
@@ -57,10 +70,10 @@ CLD_CLASS_PROPERTIES = Path(PREPROCESSED_SOURCES, "cdl_classes.csv")
 # These files are generated using the gen_chip_bbox.ipynb notebook
 CLD_RECLASS_PROPERTIES = Path(PREPROCESSED_SOURCES, "cdl_total_dst.csv")
 PREGEN_BB_CHIP_PAYLOAD = Path(
-    PREPROCESSED_SOURCES, "pregen_bb_chip_payload.geojson"
+    PREPROCESSED_SOURCES, "pregen_chip_bbox.geojson"
 )  # Coordinates in ESPG:4326
 PREGEN_BB_CHIP_5070_PAYLOAD = Path(
-    PREPROCESSED_SOURCES, "pregen_bb_chip_5070_payload.geojson"
+    PREPROCESSED_SOURCES, "pregen_chip_bbox_5070.geojson"
 )  # Coordinates in ESPG:5070
 ### --------------------------------------------------------------------------------------------------------------------
 
@@ -84,18 +97,6 @@ else:
 
 
 ### --------------------------------------------------------------------------------------------------------------------
-# Downstream files that are generated during the data preparation process
-CHIPS_ID_JSON = Path(DATA_DIR) / "chips_id.json"
-CHIPS_DF_PKL = Path(DATA_DIR) / "chips_df.pkl"
-SELECTED_TILES_PKL = Path(DATA_DIR) / "selected_tiles_df.pkl"
-SELECTED_TILES_CSV = Path(DATA_DIR) / "selected_tiles.csv"
-# CSV File's used to track the progress and details on the chips and tiles
-TRACK_CHIPS = Path(DATA_DIR) / "track_chips.csv"
-TRACK_TILES = Path(DATA_DIR) / "track_tiles.csv"
-### --------------------------------------------------------------------------------------------------------------------
-
-
-### --------------------------------------------------------------------------------------------------------------------
 # Properties specific to the bounding box generation process
 N_CHIPS = 500
 # Resultant csv file containing the class weights for each chip.
@@ -104,13 +105,6 @@ CHIPS_TO_SAMPLE = Path(MISC_DIR) / "chips_df_to_sample.pkl"
 # CSV file containing the class weights for each class in the training dataset.
 # See `Generate BBoxes` section in gen_chip_bbox.ipynb for more details
 TASK_CLASS_SAMPLES = Path(MISC_DIR) / "class_weights.csv"
-### --------------------------------------------------------------------------------------------------------------------
-
-# Ensure that the training dataset files exist
-CHIPS_ID_JSON.touch(exist_ok=True)
-BB_CHIP_PAYLOAD.touch(exist_ok=True)
-TRACK_CHIPS.touch(exist_ok=True)
-TRACK_TILES.touch(exist_ok=True)
 ### --------------------------------------------------------------------------------------------------------------------
 
 
