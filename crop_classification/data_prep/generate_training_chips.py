@@ -5,7 +5,7 @@ import rasterio
 import rasterio.mask
 import pandas as pd
 from pathlib import Path
-
+import tqdm
 
 import json
 
@@ -313,6 +313,7 @@ def main():
         """
         )
 
+    for tile in tqdm.tqdm(tiles_to_chip, desc="Tiles"):
         # Check if all the files for the tile exist in the `tiles_repojected` directory
         # There should be a total of 21 files, 7 for each scene
         tile_files = [f for f in TILE_REPROJECTED_DIR.glob(f"*{tile}*")]
@@ -324,7 +325,7 @@ def main():
         # Tiles contain the prefix 'T' in the chip_df, so we need to remove it
         # and filter the chips to process by the tile
         chips_to_process = chip_df[chip_df.tile == tile[1:]].reset_index(drop=True)
-        for k in range(len(chips_to_process)):
+        for k in tqdm.tqdm(range(len(chips_to_process)), desc="Chips"):
 
             # Get the chip_id e.g. `chip_184_236` as to identify the index in the chips json
             # and extract the chip details to be processed
