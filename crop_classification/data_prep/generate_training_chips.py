@@ -322,17 +322,6 @@ def main():
             # and extract the chip details to be processed
             current_id = chips_to_process.chip_id[k]
 
-            # # Check if the files that are created already exist. If there are a total of 3 files that contain the chip_id in the filename, then skip the chip
-            # # otherwise, process the chip.  This is to prevent reprocessing chips that have already been processed
-            # processed_chip_count = len([f for f in CHIP_DIR.glob(f"*{current_id}*")])
-            # processed_chip_count += len([f for f in FMASK_DIR.glob(f"*{current_id}*")])
-            # processed_chip_count += len(
-            #     [f for f in FILTERED_DIR.glob(f"*{current_id}*")]
-            # )
-            # if processed_chip_count == 4:
-            #     print(f"Skipping chip {current_id} as it has already been processed")
-            #     continue
-
             chip_index = chip_ids.index(current_id)
             chip_feature = chipping_js["features"][chip_index]
 
