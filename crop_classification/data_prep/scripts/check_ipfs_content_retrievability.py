@@ -37,7 +37,7 @@ def main() -> None:
     """
 
     # Read the tile payloads from the JSON file thats created from the `ipfs_cli_donwload.py` script
-    tile_payload_file = Path(MISC_DIR, "tile_payloads.json")
+    tile_payload_file = Path(TRAINING_DATASET_PATH, "tile_payloads.json")
 
     if not tile_payload_file.exists():
         raise FileNotFoundError(f"Could not find {tile_payload_file}")
@@ -46,7 +46,7 @@ def main() -> None:
         data = json.load(file)
 
     # Open the output file
-    with open(Path(MISC_DIR, "missing_cids.json"), "w") as output_file:
+    with open(Path(TRAINING_DATASET_PATH, "missing_cids.json"), "w") as output_file:
 
         for scene in tqdm.tqdm(data.keys()):
             # get the scene data
@@ -72,7 +72,9 @@ def main() -> None:
                     output_file.write(json.dumps(missing_cid_info) + "\n")
 
     # Return a count of the number of missing CIDs
-    missing_cids = pd.read_json(Path(MISC_DIR, "missing_cids.json"), lines=True)
+    missing_cids = pd.read_json(
+        Path(TRAINING_DATASET_PATH, "missing_cids.json"), lines=True
+    )
     print("Finished scanning...")
     if len(missing_cids) > 0:
         print(
@@ -80,7 +82,7 @@ def main() -> None:
     {len(missing_cids)} CID(s) could not be retrieved. IPFS nodes that contain content may be offline.
 
 
-    The missing CIDs have been saved to {Path(MISC_DIR, "missing_cids.json")}.
+    The missing CIDs have been saved to {Path(TRAINING_DATASET_PATH, "missing_cids.json")}.
     """
         )
     else:
