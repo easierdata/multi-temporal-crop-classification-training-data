@@ -343,15 +343,16 @@ def main():
 
     # Filter chips with bad_pct_max > 5 and na_count > 0
     for tile in tiles_to_chip:
-        filtered_chips = chip_data_df[
-            (chip_data_df.tile == tile[1:])
-            & (chip_data_df.bad_pct_max < 5)
-            & (chip_data_df.na_count == 0)
+        # select the subset of rows in the dataframe that match the tile
+        filtered_chips = chip_data_df[tile == chip_data_df.tile]
+        # filter the chips based on the conditions
+        filtered_chips = filtered_chips[
+            (filtered_chips.bad_pct_max < 5) & (filtered_chips.na_count == 0)
         ].chip_id.tolist()
         for chip_id in filtered_chips:
             chip_files = CHIP_DIR.glob(f"*{chip_id}*")
             for file in chip_files:
-                shutil.copyfile(file, FILTERED_DIR / file.name)
+                shutil.copyfile(file, Path(FILTERED_DIR, file.name))
 
 
 if __name__ == "__main__":
