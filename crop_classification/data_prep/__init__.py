@@ -57,10 +57,10 @@ CLD_CLASS_PROPERTIES = Path(PREPROCESSED_SOURCES, "cdl_classes.csv")
 # These files are generated using the gen_chip_bbox.ipynb notebook
 CLD_RECLASS_PROPERTIES = Path(PREPROCESSED_SOURCES, "cdl_total_dst.csv")
 PREGEN_BB_CHIP_PAYLOAD = Path(
-    PREPROCESSED_SOURCES, "pregen_bb_chip_payload.geojson"
+    PREPROCESSED_SOURCES, "pregen_chip_bbox.geojson"
 )  # Coordinates in ESPG:4326
 PREGEN_BB_CHIP_5070_PAYLOAD = Path(
-    PREPROCESSED_SOURCES, "pregen_bb_chip_5070_payload.geojson"
+    PREPROCESSED_SOURCES, "pregen_chip_bbox_5070.geojson"
 )  # Coordinates in ESPG:5070
 ### --------------------------------------------------------------------------------------------------------------------
 
