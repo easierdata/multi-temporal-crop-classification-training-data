@@ -71,12 +71,12 @@ def main() -> None:
     If the tile payloads JSON file is not found, an error message is printed and the function returns.
     """
     # Read in the output from running the `grab_cids_from_selected_tiles.py` script
-    tile_payloads_file = Path(MISC_DIR, "tile_payloads.json").resolve()
+    tile_payloads_file = Path(TRAINING_DATASET_PATH, "tile_payloads.json").resolve()
     if not tile_payloads_file.exists():
         raise FileNotFoundError(f"Could not find {tile_payloads_file}")
 
     # open json file
-    with open(tile_payloads_file.as_posix(), "r") as file:
+    with open(tile_payloads_file, "r") as file:
         all_tile_payloads = json.load(file)
 
     # Retrieve the assets for each tile
