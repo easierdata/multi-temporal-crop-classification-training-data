@@ -61,7 +61,7 @@ def get_image_paths(tile_info_df):
         )
 
         # Add the path to the QA band for each date
-        all_date_qa.extend[Path(TILE_REPROJECTED_DIR, f"{filename}.Fmask.tif")]
+        all_date_qa.extend([Path(TILE_REPROJECTED_DIR, f"{filename}.Fmask.tif")])
     return all_date_images, all_date_qa
 
 
