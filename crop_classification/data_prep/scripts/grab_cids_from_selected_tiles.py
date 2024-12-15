@@ -92,7 +92,9 @@ def main() -> None:
             all_tile_payloads[tile_info.title_id] = tile_payload
 
     # # Save the tile payloads to a JSON file
-    tile_payloads_file = Path(MISC_DIR, "tile_payloads.json").resolve().as_posix()
+    tile_payloads_file = (
+        Path(TRAINING_DATASET_PATH, "tile_payloads.json").resolve().as_posix()
+    )
     with open(tile_payloads_file, "w") as f:
         json.dump(all_tile_payloads, f)
 
