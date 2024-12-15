@@ -295,7 +295,24 @@ def main():
     selected_tiles_df = pd.read_pickle(SELECTED_TILES_PKL)
     tiles_to_chip = selected_tiles_df.tile_id.unique().tolist()
 
-    for tile in tiles_to_chip:
+    # If the track chips file exists, load it in and identify if any additional tiles need to be processed
+    if TRACK_CHIPS.exists():
+        track_df = pd.read_csv(TRACK_CHIPS)
+        # Convert the already processed tiles back to the list, `chip_data`
+        chip_data = track_df.to_dict(orient="records")
+        # Get the tiles that have already been processed
+        tiles_already_processed = track_df.tile.unique().tolist()
+        tiles_to_chip = list(set(tiles_to_chip) - set(tiles_already_processed))
+        print(
+            f"""
+        The file, {TRACK_CHIPS.name} already exists with {len(tiles_already_processed)} tile(s) already processed.
+
+        Continuing with the remaining {len(tiles_to_chip)} tile(s).
+
+        NOTE: If you would like to reprocess all tiles, please delete the file {TRACK_CHIPS.name}.
+        """
+        )
+
         # Tiles contain the prefix 'T' in the chip_df, so we need to remove it
         # and filter the chips to process by the tile
         chips_to_process = chip_df[chip_df.tile == tile[1:]].reset_index(drop=True)
