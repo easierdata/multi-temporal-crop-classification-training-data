@@ -54,7 +54,8 @@ def calc_mean_std(kwargs) -> None:
     band_min = np.min(vals_all_clipped)
     band_max = np.max(vals_all_clipped)
     with open(
-        Path(MISC_DIR, "band_stats", f"band_values_{str(i_band)}.txt"), "w+"
+        Path(TRAINING_DATASET_PATH, "band_stats", f"band_values_{str(i_band)}.txt"),
+        "w+",
     ) as f:
         f.write(f"Mean: {band_mean}\n")
         f.write(f"Std: {band_std}\n")
@@ -62,7 +63,8 @@ def calc_mean_std(kwargs) -> None:
         f.write(f"Max: {band_max}\n")
 
     with open(
-        Path(MISC_DIR, "band_stats", f"band_values_{str(i_band)}.list"), "wb"
+        Path(TRAINING_DATASET_PATH, "band_stats", f"band_values_{str(i_band)}.list"),
+        "wb",
     ) as file:
         pickle.dump(vals_all, file)
 
@@ -81,7 +83,7 @@ def main() -> None:
     """
 
     # Create band stats directory
-    Path(MISC_DIR, "band_stats").mkdir(parents=True, exist_ok=True)
+    Path(TRAINING_DATASET_PATH, "band_stats").mkdir(parents=True, exist_ok=True)
 
     i_band = list(range(1, 7))
     band_ids = [
