@@ -26,7 +26,7 @@ def create_empty_df() -> pd.DataFrame:
     Returns:
         pd.DataFrame: An empty DataFrame with the specified columns.
     """
-    df_columns = ["chip_id"] + list(range(CROP_CLASS_MAPPING.keys()))
+    df_columns = ["chip_id"] + list(range(len(CROP_CLASS_MAPPING.keys())))
     return pd.DataFrame(columns=df_columns)
 
 
