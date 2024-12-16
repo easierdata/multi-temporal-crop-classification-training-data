@@ -458,16 +458,22 @@ async def fetch_page(session: aiohttp.ClientSession, url: str) -> None | str:
     Returns:
         str: The content of the web page as a string, or None if the request was unsuccessful.
     """
-    async with session.get(url) as response:
-        if response.status != 200:
-            # check if response.real_url is valid if the response was was not 200
-            print(
-                f"Failed to retrieve content from page: {url}. Status code: {response.status}"
-            )
-            # Retry session with the real_url value
-            return None
-        else:
-            return await response.json()
+    max_retries = 5
+    for attempt in range(max_retries):
+        async with session.get(url) as response:
+            if response.status == 200:
+                return await response.json()
+            elif response.status == 429:
+                retry_after = int(response.headers.get("retry-after", 1))
+                print(f"Rate limit exceeded. Retrying after {retry_after} seconds...")
+                await asyncio.sleep(retry_after)
+            else:
+                print(
+                    f"Failed to retrieve content from page: {url}. Status code: {response.status}"
+                )
+                return None
+    print(f"Max retries exceeded for URL: {url}")
+    return None
 
 
 ### Filter based on spatial coverage
