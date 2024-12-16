@@ -30,16 +30,16 @@ except ModuleNotFoundError:
 AUTH_SELECTION = "token"
 
 # Set the concurrency limit for running asynchronous tasks
-CONCURRENCY_LIMIT = 50
+CONCURRENCY_LIMIT = CMR_STAC_PARMS["async_concurrency_limit"]
 
 # Default STAC properties
 #    Note: The collection_id is set to "HLSS30.v2.0" refers to the `cloudstac` endpoint while "HLSS30_2.0" refers to the `stac` endpoint.
 #          cloudstac endpoint: https://cmr.earthdata.nasa.gov/cloudstac/
 #          stac endpoint: https://cmr.earthdata.nasa.gov/stac/
-ENDPOINT_PROVIDER = "stac"  # or "cloudstac"
-CATALOG = "LPCLOUD"
-COLLECTION_ID = "HLSS30_2.0"  # or "HLSS30.v2.0"
-BASE_STAC_URL = f"https://cmr.earthdata.nasa.gov/{ENDPOINT_PROVIDER}"
+ENDPOINT_PROVIDER = CMR_STAC_PARMS["stac_endpoint_provider"]
+CATALOG = CMR_STAC_PARMS["stac_catalog"]
+COLLECTION_ID = CMR_STAC_PARMS["stac_collection_id"]  # or "HLSS30.v2.0"
+BASE_STAC_URL = f'{CMR_STAC_PARMS["stac_base_cmr_url"]}/{ENDPOINT_PROVIDER}'
 STAC_URL = f"{BASE_STAC_URL}/{CATALOG}/"
 
 
