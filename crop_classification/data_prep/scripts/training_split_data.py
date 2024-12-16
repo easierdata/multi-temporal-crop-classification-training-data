@@ -22,7 +22,7 @@ def main() -> None:
     2. Extracts chip IDs from the filenames by parsing the value between `chip_` and `.mask.tif`.
     3. Randomly splits the list of chip IDs into 80% training and 20% validation sets.
     4. Prints the total number of chips, number of training chips, and number of validation chips.
-    5. Saves the training and validation chip IDs to CSV files named `train_ids.csv` and `val_ids.csv` to the training dataset
+    5. Saves the training and validation chip IDs to CSV files named `train_ids.csv` and `validation_ids.csv` to the training dataset
        specified in the configuration file.
     """
     # get a list of all the filepaths in the `chips_filtered` directory
@@ -47,7 +47,7 @@ def main() -> None:
     train_ids_df = pd.DataFrame(train_ids, columns=["ids"])
     val_ids_df = pd.DataFrame(val_ids, columns=["ids"])
     train_ids_df.to_csv(Path(TRAINING_DATASET_PATH, "train_ids.csv"), index=False)
-    val_ids_df.to_csv(Path(TRAINING_DATASET_PATH, "val_ids.csv"), index=False)
+    val_ids_df.to_csv(Path(TRAINING_DATASET_PATH, "validation_ids.csv"), index=False)
 
 
 if __name__ == "__main__":

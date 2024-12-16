@@ -136,7 +136,7 @@ def main() -> None:
     3. Plots the class distribution for validation and training datasets and saves the plots as PNG files.
     The paths for the CSV files and the output plots are derived from the TRAINING_DATASET_PATH constant.
     """
-    val_chips_ids = grab_chip_ids(Path(TRAINING_DATASET_PATH, "val_ids.csv"))
+    val_chips_ids = grab_chip_ids(Path(TRAINING_DATASET_PATH, "validation_ids.csv"))
     train_chip_ids = grab_chip_ids(Path(TRAINING_DATASET_PATH, "train_ids.csv"))
 
     val_chips_df = process_filtered_chips(val_chips_ids)
