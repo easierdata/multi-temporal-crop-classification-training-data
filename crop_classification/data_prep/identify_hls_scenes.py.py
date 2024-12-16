@@ -8,13 +8,11 @@ import asyncio
 from pystac_client import Client
 import fiona
 import geopandas
-import requests
 import tqdm
 from pathlib import Path
 import pandas as pd
 from shapely.geometry import Point
 import concurrent.futures
-import multiprocessing
 import datetime as dt
 
 # The code cell is used to add the src directory to the Python path, making
@@ -30,11 +28,6 @@ except ModuleNotFoundError:
 
 # Set the authentication selection. Options are 'netrc' or 'token'
 AUTH_SELECTION = "token"
-
-# Identify the number of CPUs on the system to set the concurrency limit
-NUM_CPUS = multiprocessing.cpu_count()
-if NUM_CPUS > 24:
-    NUM_CPUS = 24
 
 # Set the concurrency limit for running asynchronous tasks
 CONCURRENCY_LIMIT = 50
