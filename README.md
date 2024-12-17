@@ -62,9 +62,8 @@ A configuration file is included to optionally override default properties, loca
 
 - `data_dir`: The directory where the HLS and CDL data is stored
 - `train_dataset_name`: Name of the directory where the training data will be stored
-- `val_csv_path`: Path to the CSV file containing the validation data
-- `test_csv_path`: Path to the CSV file containing the test data
-- `aoi_selection`: Path to the geojson file containing the AOI selection from `Select-AOI`
+- `chip_payload_filename`: Path to the geojson file containing the AOI selection from `Select-AOI`
+- `ipfs_stac_params`: Parameters for the `ipfs-stac` library as to access a STAC endpoint configured with alternate extension with CID support
 
 ### Running the Pipeline
 
