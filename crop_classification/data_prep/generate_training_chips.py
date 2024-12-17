@@ -310,42 +310,12 @@ def main():
         """
         )
 
-    for tile in tqdm.tqdm(tiles_to_chip, desc="Tiles"):
-        # Check if all the files for the tile exist in the `tiles_repojected` directory
-        # There should be a total of 21 files, 7 for each scene
-        tile_files = [f for f in TILE_REPROJECTED_DIR.glob(f"*{tile}*")]
-        if len(tile_files) != 21:
-            print(f"Tile {tile} is missing {21-len(tile_files)} files.")
-            failed_tiles.append(tile)
-            continue
-
-        # Tiles contain the prefix 'T' in the chip_df, so we need to remove it
-        # and filter the chips to process by the tile
-        chips_to_process = chip_df[chip_df.tile == tile[1:]].reset_index(drop=True)
-        for k in tqdm.tqdm(range(len(chips_to_process)), desc="Chips"):
-
-            # Get the chip_id e.g. `chip_184_236` as to identify the index in the chips json
-            # and extract the chip details to be processed
-            current_id = chips_to_process.chip_id[k]
-
-            chip_index = chip_ids.index(current_id)
-            chip_feature = chipping_js["features"][chip_index]
-
-            # Grab the tile that overlaps with the chip and the geometry shape of the chip
-            chip_tile = chips_to_process.tile[k]
-            shape = [chip_feature["geometry"]]
-            full_tile_name = "T" + chip_tile
-
-            try:
-                chip_info = process_chip(
-                    current_id, full_tile_name, shape, selected_tiles_df
-                )
-                chip_info["chip_id"] = current_id
-                chip_info["tile"] = tile
-                chip_data.append(chip_info)
-            except Exception as e:
-                print(f"Failed to process chip {current_id} with error {e}")
-                failed_tiles.append(tile)
+    # Export failed tiles to a csv file
+    if failed_tiles:
+        failed_tiles_df = pd.DataFrame(failed_tiles)
+        failed_tiles_df.to_csv(
+            Path(TRAINING_DATASET_PATH, "failed_tiles_to_chip.csv"), index=False
+        )
 
     chip_data_df = pd.DataFrame(chip_data)
     chip_data_df["bad_pct_max"] = chip_data_df[
