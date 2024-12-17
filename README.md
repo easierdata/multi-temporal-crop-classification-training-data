@@ -4,7 +4,7 @@
 
 This repository, originally [based](https://github.com/ClarkCGA/multi-temporal-crop-classification-training-data) from [Clark Center for Geospatial Analytics](https://www.clarku.edu/centers/geospatial-analytics/), contains the pipeline to generate data for input into the [multi-temporal crop classification model pipeline](https://github.com/ClarkCGA/multi-temporal-crop-classification-baseline) to fine-tune, test or inference using the baseline supervised CNN model or creating a new baseline model from scratch.
 
-Input model data is derived the USDA Cropland Data Layer (CDL) to curate crop type labels and scenes from [NASAs Harmonized Landsat and Sentinel-2](https://hls.gsfc.nasa.gov/) (HLS) to capture snapshots of time across the growing season.
+Input model data is derived the USDA Cropland Data Layer (CDL) to curate crop type labels and scenes from [NASAs Harmonized Landsat and Sentinel-2](https://hls.gsfc.nasa.gov/) (HLS) to capture snapshots of time across the growing season. A selection of HLS scenes is available on [IPFS](https://ipfs.io/) and [Filecoin](https://filecoin.io/) for decentralized and accessible open science collaboration.
 
 > The dataset is published as part of the [Prithvi 100M](https://arxiv.org/abs/2310.18660) foundation model release on [HuggingFace](https://huggingface.co/datasets/ibm-nasa-geospatial/multi-temporal-crop-classification) and [Source Cooperative](https://beta.source.coop/repositories/clarkcga/multi-temporal-crop-classification/) with an open-access license.
 
@@ -16,9 +16,9 @@ The primary purpose of the data generation pipeline is for training geospatial s
 
 A selection of scenes from HLS, is available on decentralized networks such as [IPFS](https://ipfs.io/) and [Filecoin](https://filecoin.io/) for resilient and accessible open science collaboration. The python library, ipfs-stac, leverages the [STAC spec](https://stacspec.org/en) to discover content via the [Easier STAC API](https://stac.easierdata.info/) and IPFS for content retrieval.
 
-> < WHAT OTHER DETAILS DO I NEED TO ADD???>
+[HLS data is subdivided](https://sentiwiki.copernicus.eu/web/s2-products) on a predefined set of tiles, which dictates the tile naming convention. The tile grid file is included in the repository as `sentinel_tile_grid.kml` which can also be sourced from the Copernicus Open Access Hub at this [link](https://sentiwiki.copernicus.eu/__attachments/1692737/S2A_OPER_GIP_TILPAR_MPC__20151209T095117_V20150622T000000_21000101T000000_B00.zip?inst-v=d43ccf82-85e7-4081-860f-990e7b6e9407).
 
- The CDL data is available for download from the [USDA NASS website](https://www.nass.usda.gov/Research_and_Science/Cropland/Release/). The data generation pipeline requires the HLS data to be downloaded in HDF format and the CDL data to be downloaded in GeoTIFF format.
+The CDL data is available for download from the [USDA NASS website](https://www.nass.usda.gov/Research_and_Science/Cropland/Release/). The data generation pipeline requires the HLS data to be downloaded in HDF format and the CDL data to be downloaded in GeoTIFF format.
 
 ## Data Generation Pipeline
 
@@ -52,7 +52,7 @@ source .venv/bin/activate
 pip install -r requirements.txt
 ```
 
-2. Install the IPFS desktop app or Kubo CLI client as this will will allow you to start up a IPFS local node on your machine.
+1. Install the [IPFS desktop](https://docs.ipfs.tech/how-to/desktop-app/) app or [Kubo CLI client](https://docs.ipfs.tech/install/command-line/) as this will will allow you to run a local IPFS node on your machine.
 
 ### Configuration
 
