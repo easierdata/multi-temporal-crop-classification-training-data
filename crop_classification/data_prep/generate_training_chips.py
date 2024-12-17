@@ -62,7 +62,10 @@ def get_image_paths(tile_info_df):
 
         # Get the paths to the images for each band
         all_date_images.extend(
-            [Path(TILE_REPROJECTED_DIR, f"{filename}.{band}.tif") for band in HLS_BANDS]
+            [
+                Path(TILE_REPROJECTED_DIR, f"{filename}.{band}.tif")
+                for band in _HLS_BANDS
+            ]
         )
 
         # Add the path to the QA band for each date
@@ -79,6 +82,7 @@ def check_all_qa(all_date_qa, shape):
     qa_bands.append(qa_second)
     qa_bands.append(qa_third)
     qa_bands = np.array(qa_bands).astype(np.uint8)
+
     return (
         valid_first,
         bad_pct_first,
@@ -128,6 +132,7 @@ def check_qa(
     bad_qa = qa_df[~qa_df.qa_val.isin(valid_qa)].sort_values(
         ["counts"], ascending=False
     )
+
     if len(bad_qa) > 0:
         highest_invalid_percent = bad_qa.pct.tolist()[0]
     else:
