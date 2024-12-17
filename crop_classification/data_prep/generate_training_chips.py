@@ -6,7 +6,8 @@ import rasterio.mask
 import pandas as pd
 from pathlib import Path
 import tqdm
-
+import multiprocessing
+from functools import partial
 import json
 
 
@@ -270,6 +271,49 @@ def process_chip(chip_id, chip_tile, shape, all_tiles):
     }
 
 
+def process_tile(tile, chip_df, chip_ids, chipping_js, selected_tiles_df):
+    tile_files = [f for f in TILE_REPROJECTED_DIR.glob(f"*{tile}*")]
+    if len(tile_files) != 21:
+        print(f"Tile {tile} is missing {21-len(tile_files)} files.")
+        return None, tile
+
+    chips_to_process = chip_df[chip_df.tile == tile[1:]].reset_index(drop=True)
+    # if len(chips_to_process) == 0:
+    #     return None, tile
+    tile_chip_data = []
+    tile_failed_chips = []
+
+    # Tiles contain the prefix 'T' in the chip_df, so we need to remove it
+    # and filter the chips to process by the tile
+    for k in range(len(chips_to_process)):
+        # Get the chip_id e.g. `chip_184_236` as to identify the index in the chips json
+        # and extract the chip details to be processed
+        current_id = chips_to_process.chip_id[k]
+        chip_index = chip_ids.index(current_id)
+        chip_feature = chipping_js["features"][chip_index]
+
+        # Grab the tile that overlaps with the chip and the geometry shape of the chip
+        chip_tile = chips_to_process.tile[k]
+        shape = [chip_feature["geometry"]]
+        full_tile_name = "T" + chip_tile
+
+        try:
+            chip_info = process_chip(
+                current_id, full_tile_name, shape, selected_tiles_df
+            )
+            if chip_info:
+                chip_info["chip_id"] = current_id
+                chip_info["tile"] = tile
+                tile_chip_data.append(chip_info)
+            else:
+                print(f"Failed to process chip {current_id} | {tile}")
+        except Exception as e:
+            print(f"Failed to process chip {current_id} with error {e}")
+            tile_failed_chips.append({"chip_id": current_id, "tile": tile})
+
+    return tile_chip_data, tile_failed_chips
+
+
 def main():
 
     # Define missing variables
@@ -309,6 +353,35 @@ def main():
         NOTE: If you would like to reprocess all tiles, please delete the file {TRACK_CHIPS.name}.
         """
         )
+
+    # Prepare the arguments for multiprocessing
+    process_tile_partial = partial(
+        process_tile,
+        chip_df=chip_df,
+        chip_ids=chip_ids,
+        chipping_js=chipping_js,
+        selected_tiles_df=selected_tiles_df,
+    )
+
+    # Create a multiprocessing pool
+    with multiprocessing.Pool() as pool:
+        # Use tqdm to show progress
+        results = list(
+            tqdm.tqdm(
+                pool.imap(process_tile_partial, tiles_to_chip),
+                total=len(tiles_to_chip),
+                desc="Tiles ",
+            )
+        )
+
+    # Combine results
+    chip_data = []
+    failed_tiles = []
+    for tile_chip_data, tile_failed_chips in results:
+        if tile_chip_data is not None:
+            chip_data.extend(tile_chip_data)
+        if tile_failed_chips:
+            failed_tiles.extend(tile_failed_chips)
 
     # Export failed tiles to a csv file
     if failed_tiles:
