@@ -59,7 +59,7 @@ Checks the retrievability of content from IPFS by attempting to download each Co
 
 **When to run**: This script can be run after generating the json from `grab_cids_from_selected_tiles.py`.
 
-##### training_split_data.py
+##### split_training_data.py
 
 Splits the chip IDs into training and validation sets for the specified training dataset in the configuration file. A unique list of chip IDs are determined from the files in the `chips_filtered` directory. It reads the list of chip IDs, randomly assigns them to either the training or validation set, and saves the resulting lists to CSV files. These CSV files are used to train and validate the crop classification model, ensuring that the model is evaluated on a separate set of data from what it was trained on.
 
