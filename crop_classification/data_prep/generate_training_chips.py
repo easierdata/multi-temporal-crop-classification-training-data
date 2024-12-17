@@ -6,7 +6,8 @@ import rasterio.mask
 import pandas as pd
 from pathlib import Path
 import tqdm
-
+import multiprocessing
+from functools import partial
 import json
 
 
@@ -24,6 +25,10 @@ except ModuleNotFoundError:
 ## set up CDL reclass
 cdl_class_df = pd.read_csv(CLD_RECLASS_PROPERTIES)
 CROP_DICT = dict(zip(cdl_class_df.old_class_value, cdl_class_df.new_class_value))
+
+# Remove Fmask value from HLS_BANDS since we do not want
+# to merge it into the final merged imagery chip
+_HLS_BANDS = [band for band in HLS_BANDS if band != "Fmask"]
 
 
 def crop_multi(x):
@@ -57,7 +62,10 @@ def get_image_paths(tile_info_df):
 
         # Get the paths to the images for each band
         all_date_images.extend(
-            [Path(TILE_REPROJECTED_DIR, f"{filename}.{band}.tif") for band in HLS_BANDS]
+            [
+                Path(TILE_REPROJECTED_DIR, f"{filename}.{band}.tif")
+                for band in _HLS_BANDS
+            ]
         )
 
         # Add the path to the QA band for each date
@@ -74,6 +82,7 @@ def check_all_qa(all_date_qa, shape):
     qa_bands.append(qa_second)
     qa_bands.append(qa_third)
     qa_bands = np.array(qa_bands).astype(np.uint8)
+
     return (
         valid_first,
         bad_pct_first,
@@ -123,6 +132,7 @@ def check_qa(
     bad_qa = qa_df[~qa_df.qa_val.isin(valid_qa)].sort_values(
         ["counts"], ascending=False
     )
+
     if len(bad_qa) > 0:
         highest_invalid_percent = bad_qa.pct.tolist()[0]
     else:
@@ -266,6 +276,49 @@ def process_chip(chip_id, chip_tile, shape, all_tiles):
     }
 
 
+def process_tile(tile, chip_df, chip_ids, chipping_js, selected_tiles_df):
+    tile_files = [f for f in TILE_REPROJECTED_DIR.glob(f"*{tile}*")]
+    if len(tile_files) != 21:
+        print(f"Tile {tile} is missing {21-len(tile_files)} files.")
+        return None, tile
+
+    chips_to_process = chip_df[chip_df.tile == tile[1:]].reset_index(drop=True)
+    # if len(chips_to_process) == 0:
+    #     return None, tile
+    tile_chip_data = []
+    tile_failed_chips = []
+
+    # Tiles contain the prefix 'T' in the chip_df, so we need to remove it
+    # and filter the chips to process by the tile
+    for k in range(len(chips_to_process)):
+        # Get the chip_id e.g. `chip_184_236` as to identify the index in the chips json
+        # and extract the chip details to be processed
+        current_id = chips_to_process.chip_id[k]
+        chip_index = chip_ids.index(current_id)
+        chip_feature = chipping_js["features"][chip_index]
+
+        # Grab the tile that overlaps with the chip and the geometry shape of the chip
+        chip_tile = chips_to_process.tile[k]
+        shape = [chip_feature["geometry"]]
+        full_tile_name = "T" + chip_tile
+
+        try:
+            chip_info = process_chip(
+                current_id, full_tile_name, shape, selected_tiles_df
+            )
+            if chip_info:
+                chip_info["chip_id"] = current_id
+                chip_info["tile"] = tile
+                tile_chip_data.append(chip_info)
+            else:
+                print(f"Failed to process chip {current_id} | {tile}")
+        except Exception as e:
+            print(f"Failed to process chip {current_id} with error {e}")
+            tile_failed_chips.append({"chip_id": current_id, "tile": tile})
+
+    return tile_chip_data, tile_failed_chips
+
+
 def main():
 
     # Define missing variables
@@ -274,13 +327,6 @@ def main():
     chip_ids = []
     chipping_js = None
     track_df = None
-    ## process chips
-    failed_tiles = []
-    chip_data = []
-
-    ## set up CDL reclass
-    cdl_class_df = pd.read_csv(CLD_RECLASS_PROPERTIES)
-    crop_dict = dict(zip(cdl_class_df.old_class_value, cdl_class_df.new_class_value))
 
     # Load in details about the chips
     chip_df = pd.read_pickle(CHIPS_DF_PKL)
@@ -313,42 +359,41 @@ def main():
         """
         )
 
-    for tile in tqdm.tqdm(tiles_to_chip, desc="Tiles"):
-        # Check if all the files for the tile exist in the `tiles_repojected` directory
-        # There should be a total of 21 files, 7 for each scene
-        tile_files = [f for f in TILE_REPROJECTED_DIR.glob(f"*{tile}*")]
-        if len(tile_files) != 21:
-            print(f"Tile {tile} is missing {21-len(tile_files)} files.")
-            failed_tiles.append(tile)
-            continue
+    # Prepare the arguments for multiprocessing
+    process_tile_partial = partial(
+        process_tile,
+        chip_df=chip_df,
+        chip_ids=chip_ids,
+        chipping_js=chipping_js,
+        selected_tiles_df=selected_tiles_df,
+    )
 
-        # Tiles contain the prefix 'T' in the chip_df, so we need to remove it
-        # and filter the chips to process by the tile
-        chips_to_process = chip_df[chip_df.tile == tile[1:]].reset_index(drop=True)
-        for k in tqdm.tqdm(range(len(chips_to_process)), desc="Chips"):
+    # Create a multiprocessing pool
+    with multiprocessing.Pool() as pool:
+        # Use tqdm to show progress
+        results = list(
+            tqdm.tqdm(
+                pool.imap(process_tile_partial, tiles_to_chip),
+                total=len(tiles_to_chip),
+                desc="Tiles ",
+            )
+        )
 
-            # Get the chip_id e.g. `chip_184_236` as to identify the index in the chips json
-            # and extract the chip details to be processed
-            current_id = chips_to_process.chip_id[k]
+    # Combine results
+    chip_data = []
+    failed_tiles = []
+    for tile_chip_data, tile_failed_chips in results:
+        if tile_chip_data is not None:
+            chip_data.extend(tile_chip_data)
+        if tile_failed_chips:
+            failed_tiles.extend(tile_failed_chips)
 
-            chip_index = chip_ids.index(current_id)
-            chip_feature = chipping_js["features"][chip_index]
-
-            # Grab the tile that overlaps with the chip and the geometry shape of the chip
-            chip_tile = chips_to_process.tile[k]
-            shape = [chip_feature["geometry"]]
-            full_tile_name = "T" + chip_tile
-
-            try:
-                chip_info = process_chip(
-                    current_id, full_tile_name, shape, selected_tiles_df
-                )
-                chip_info["chip_id"] = current_id
-                chip_info["tile"] = tile
-                chip_data.append(chip_info)
-            except Exception as e:
-                print(f"Failed to process chip {current_id} with error {e}")
-                failed_tiles.append(tile)
+    # Export failed tiles to a csv file
+    if failed_tiles:
+        failed_tiles_df = pd.DataFrame(failed_tiles)
+        failed_tiles_df.to_csv(
+            Path(TRAINING_DATASET_PATH, "failed_tiles_to_chip.csv"), index=False
+        )
 
     chip_data_df = pd.DataFrame(chip_data)
     chip_data_df["bad_pct_max"] = chip_data_df[

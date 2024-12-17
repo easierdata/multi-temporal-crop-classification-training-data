@@ -8,7 +8,6 @@
 /raw_cdl
 
 2022_30m_cdls*
-sentinel_tile_grid*
 .DS_Store
 .ipynb_checkpoints/
 data/.DS_Store

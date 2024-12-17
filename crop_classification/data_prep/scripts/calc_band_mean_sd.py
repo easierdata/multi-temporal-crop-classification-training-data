@@ -33,7 +33,7 @@ def calc_mean_std(kwargs) -> None:
     band = kwargs["band"]
     clip_val = 1.5
 
-    merged_hls_chips = list(TRAINING_DATASET_PATH.glob("*merged.tif"))
+    merged_hls_chips = list(FILTERED_DIR.glob("*merged.tif"))
     # means = []
     # stds = []
 

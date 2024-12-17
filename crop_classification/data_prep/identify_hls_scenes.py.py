@@ -8,13 +8,11 @@ import asyncio
 from pystac_client import Client
 import fiona
 import geopandas
-import requests
 import tqdm
 from pathlib import Path
 import pandas as pd
 from shapely.geometry import Point
 import concurrent.futures
-import multiprocessing
 import datetime as dt
 
 # The code cell is used to add the src directory to the Python path, making
@@ -31,22 +29,17 @@ except ModuleNotFoundError:
 # Set the authentication selection. Options are 'netrc' or 'token'
 AUTH_SELECTION = "token"
 
-# Identify the number of CPUs on the system to set the concurrency limit
-NUM_CPUS = multiprocessing.cpu_count()
-if NUM_CPUS > 24:
-    NUM_CPUS = 24
-
 # Set the concurrency limit for running asynchronous tasks
-CONCURRENCY_LIMIT = 50
+CONCURRENCY_LIMIT = CMR_STAC_PARMS["async_concurrency_limit"]
 
 # Default STAC properties
 #    Note: The collection_id is set to "HLSS30.v2.0" refers to the `cloudstac` endpoint while "HLSS30_2.0" refers to the `stac` endpoint.
 #          cloudstac endpoint: https://cmr.earthdata.nasa.gov/cloudstac/
 #          stac endpoint: https://cmr.earthdata.nasa.gov/stac/
-ENDPOINT_PROVIDER = "stac"  # or "cloudstac"
-CATALOG = "LPCLOUD"
-COLLECTION_ID = "HLSS30_2.0"  # or "HLSS30.v2.0"
-BASE_STAC_URL = f"https://cmr.earthdata.nasa.gov/{ENDPOINT_PROVIDER}"
+ENDPOINT_PROVIDER = CMR_STAC_PARMS["stac_endpoint_provider"]
+CATALOG = CMR_STAC_PARMS["stac_catalog"]
+COLLECTION_ID = CMR_STAC_PARMS["stac_collection_id"]  # or "HLSS30.v2.0"
+BASE_STAC_URL = f'{CMR_STAC_PARMS["stac_base_cmr_url"]}/{ENDPOINT_PROVIDER}'
 STAC_URL = f"{BASE_STAC_URL}/{CATALOG}/"
 
 
@@ -465,16 +458,22 @@ async def fetch_page(session: aiohttp.ClientSession, url: str) -> None | str:
     Returns:
         str: The content of the web page as a string, or None if the request was unsuccessful.
     """
-    async with session.get(url) as response:
-        if response.status != 200:
-            # check if response.real_url is valid if the response was was not 200
-            print(
-                f"Failed to retrieve content from page: {url}. Status code: {response.status}"
-            )
-            # Retry session with the real_url value
-            return None
-        else:
-            return await response.json()
+    max_retries = 5
+    for attempt in range(max_retries):
+        async with session.get(url) as response:
+            if response.status == 200:
+                return await response.json()
+            elif response.status == 429:
+                retry_after = int(response.headers.get("retry-after", 1))
+                print(f"Rate limit exceeded. Retrying after {retry_after} seconds...")
+                await asyncio.sleep(retry_after)
+            else:
+                print(
+                    f"Failed to retrieve content from page: {url}. Status code: {response.status}"
+                )
+                return None
+    print(f"Max retries exceeded for URL: {url}")
+    return None
 
 
 ### Filter based on spatial coverage

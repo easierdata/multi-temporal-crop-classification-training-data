@@ -9,6 +9,9 @@ with open(
 # ipfs-stac properties
 IPFS_STAC = config["ipfs_stac_params"]
 
+# CMR STAC properties
+CMR_STAC_PARMS = config["cmr_stac_params"]
+
 # Crop Classification Mapping
 CROP_CLASS_MAPPING = config["class_mapping"]
 

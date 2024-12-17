@@ -15,6 +15,20 @@ ipfs_stac_params:
   gateway_port:
   local_gateway:
 
+# The following parameters are to configure the NASA CMR STAC endpoint to identifying HLS scenes
+# for our training dataset and other related metadata details.
+cmr_stac_params:
+  # NASA maintains two stac endpoints that can be used to query content [stac, cloudstac]
+  stac_base_cmr_url: https://cmr.earthdata.nasa.gov
+  stac_endpoint_provider: stac
+  stac_catalog: LPCLOUD
+  stac_collection_id: HLSS30_2.0
+
+  # The following parameter can be used to tweak the number of asynchronous operations.
+  # Increasing this value can speed up the overall process but prone to rate throttling limits.
+  # see this link for more info: https://cmr.earthdata.nasa.gov/search/site/docs/search/api.html#request-moderation
+  async_concurrency_limit: 50
+
 # Default parameters for the training dataset
 # It's not recommended to change these values unless you want to customize the training dataset
 
