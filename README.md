@@ -71,6 +71,16 @@ A configuration file is included to optionally override default properties, loca
 The pipeline starts by running the following scripts [found here](./crop_classification/data_prep):
 
 1. [identify_hls_scenes.py](./crop_classification/data_prep/identify_hls_scenes.py) - This script prepares the CDL chips and identifies intersecting HLS scenes that correspond to each chip. The output of this script is a CSV file containing the HLS scenes that intersect with each CDL chip.
-2. <ADD DOWNLOAD SCRIPT> - This script downloads the HLS scenes from IPFS based on the CSV file generated in the previous step.
+2. [retrieve_hls_scenes.py](./crop_classification/data_prep/retrieve_hls_scenes.py) - This script downloads the HLS scenes from IPFS based on the CSV file generated in the previous step.
 3. [reproject_hls_scenes.py](./crop_classification/data_prep/reproject_hls_scenes.py) - This script reprojects scene based on the CDL projection.
 4. [generate_training_chips.py](./crop_classification/data_prep/generate_training_chips.py) - This script merges scene bands and clips to chip boundaries. It also discards clipped results that do not meet QA and NA criteria.
+
+The final images used for model training are stored in the `chips_filtered` directory.
+
+To split the final images into training and validation datasets, run the following script:
+
+```shell
+python crop_classification/data_prep/split_training_data.py
+```
+
+which creates two files `train.csv` and `validation.csv` in the training dataset directory.
