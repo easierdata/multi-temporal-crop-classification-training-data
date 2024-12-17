@@ -25,6 +25,10 @@ except ModuleNotFoundError:
 cdl_class_df = pd.read_csv(CLD_RECLASS_PROPERTIES)
 CROP_DICT = dict(zip(cdl_class_df.old_class_value, cdl_class_df.new_class_value))
 
+# Remove Fmask value from HLS_BANDS since we do not want
+# to merge it into the final merged imagery chip
+_HLS_BANDS = [band for band in HLS_BANDS if band != "Fmask"]
+
 
 def crop_multi(x):
     return CROP_DICT[x]
@@ -274,13 +278,6 @@ def main():
     chip_ids = []
     chipping_js = None
     track_df = None
-    ## process chips
-    failed_tiles = []
-    chip_data = []
-
-    ## set up CDL reclass
-    cdl_class_df = pd.read_csv(CLD_RECLASS_PROPERTIES)
-    crop_dict = dict(zip(cdl_class_df.old_class_value, cdl_class_df.new_class_value))
 
     # Load in details about the chips
     chip_df = pd.read_pickle(CHIPS_DF_PKL)
