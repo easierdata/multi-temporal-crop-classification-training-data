@@ -42,30 +42,17 @@ For a detailed explanation of each pipeline process, please refer to this [docum
 
 ### Prerequisites
 
-This project uses [Poetry](https://python-poetry.org/) for dependency management and is compatible with Python versions >=3.10. To install all necessary dependencies, follow these steps:
+To get started:
 
-1. Install Poetry if you haven't already:
+1. create a virtual environment and install the required dependencies:
 
-   ```shell
-   curl -sSL https://install.python-poetry.org | python3 -
-   ```
+```shell
+python -m venv .venv
+source .venv/bin/activate
+pip install -r requirements.txt
+```
 
-2. Clone the repository:
-
-   ```shell
-   git clone https://github.com/easierdata/multi-temporal-crop-classification-training-data.git
-   cd multi-temporal-crop-classification-training-data
-   ```
-
-3. Install the dependencies:
-
-   ```shell
-   poetry install
-   ```
-
-> Need to update repo with poetry content or otherwise modify the above **steps 1-3** for users to pip install the project.
-
-4. Install the IPFS desktop app or Kubo CLI client as this will will allow you to start up a IPFS local node on your machine.
+2. Install the IPFS desktop app or Kubo CLI client as this will will allow you to start up a IPFS local node on your machine.
 
 ### Configuration
 
