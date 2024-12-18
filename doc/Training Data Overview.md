@@ -7,9 +7,10 @@
     - [Process Outline](#process-outline)
     - [Crop Classification `data_prep` module](#crop-classification-data_prep-module)
       - [Scripts](#scripts)
-        - [grab\_cids\_from\_selected\_tiles.py](#grab_cids_from_selected_tilespy)
         - [create\_bb.py](#create_bbpy)
         - [select\_aoi.py](#select_aoipy)
+        - [create\_chip\_5070\_payload.py](#create_chip_5070_payloadpy)
+        - [grab\_cids\_from\_selected\_tiles.py](#grab_cids_from_selected_tilespy)
         - [ipfs\_cli\_download.py](#ipfs_cli_downloadpy)
         - [check\_ipfs\_content\_retrievability.py](#check_ipfs_content_retrievabilitypy)
         - [split\_training\_data.py](#split_training_datapy)
@@ -67,12 +68,6 @@ python crop_classification/data_prep/<name>.py
 
 #### Scripts
 
-##### grab_cids_from_selected_tiles.py
-
-Handles getting the CIDs for the selected tiles and generates a JSON file containing the Content Identifiers (CIDs) for each tile.
-
-**When to run**: Run after selecting the AOI and downloading the required HLS data to generate the CIDs for each tile, which are necessary for further processing in the pipeline. The resulting output can be used to run `ipfs_cli_download.py` to download the HLS scenes or `check_ipfs_content_retrievability`.
-
 ##### create_bb.py
 
 Responsible for generating bounding boxes for chips based on the Cropland Data Layer (CDL) data. It processes the CDL data to create a GeoJSON file containing the bounding boxes and their associated properties. These bounding boxes are used in subsequent steps of the pipeline to define the spatial extent of the chips that will be processed.
@@ -84,6 +79,18 @@ Responsible for generating bounding boxes for chips based on the Cropland Data L
 Generates an interactive web map tool for users to select an Area of Interest (AOI). Users can draw polygons on a map to define the AOI, which is then saved as a GeoJSON file. The selected AOI is used to filter the chips and tiles that will be processed in the pipeline, ensuring that only data within the specified area is considered.
 
 **When to run**: This script is only necessary to run if the bounding box chips were updated with `create_bb.py`.
+
+##### create_chip_5070_payload.py
+
+A copy of the the geojson file passed into the `chip_payload_filename` property in the configuration file but reprojected in the `EPSG:5070` CRS. The reprojection is necessary so the HLS imagery matches CDL coordinate system. The output geojson is saved to the same directory as the input file but with the suffix `_5070` appended to the filename.
+
+> Note: This script is called in the `reproject_hls_scenes.py` if the `EPSG:5070` CRS file does not exist.
+
+##### grab_cids_from_selected_tiles.py
+
+Handles getting the CIDs for the selected tiles and generates a JSON file containing the Content Identifiers (CIDs) for each tile.
+
+**When to run**: Run after selecting the AOI and downloading the required HLS data to generate the CIDs for each tile, which are necessary for further processing in the pipeline. The resulting output can be used to run `ipfs_cli_download.py` to download the HLS scenes or `check_ipfs_content_retrievability`.
 
 ##### ipfs_cli_download.py
 
@@ -107,7 +114,7 @@ Splits the chip IDs into training and validation sets for the specified training
 
 ##### calc_band_mean_sd.py
 
-Calculates statistical metrics (mean, standard deviation, minimum, and maximum values) for each set of bands in the final merged image in the `filtered_chips` directory. The statistics are saved to a text files and also stores all band values in a binary file.
+Calculates statistical metrics (mean, standard deviation, minimum, and maximum values) for each set of bands in the final merged image in the `filtered_chips` directory. The statistics are saved to a text files and also stores all band values in a binary file. An additional file is created named `global_stats.txt` that contains the global statistics from each band.  This information can be passed into the `global_stats` parameter in the model pipeline configuration file. 
 
 **When to run:** After preparing the chip data to create the training and validation datasets. This output can be used to compute the mean and standard deviation for normalization purposes during model training.
 
