@@ -82,4 +82,4 @@ To split the final images into training and validation datasets, run the followi
 python crop_classification/data_prep/split_training_data.py
 ```
 
-which creates two files `train.csv` and `validation.csv` in the training dataset directory.
+which creates two files `train_ids.csv` and `val_ids.csv` in the training dataset directory.
