@@ -1,22 +1,10 @@
 # How training data is created
 
 ## Table of Contents
-- [How training data is created](#how-training-data-is-created)
-  - [Table of Contents](#table-of-contents)
   - [Introduction](#introduction)
     - [Process Outline](#process-outline)
     - [Crop Classification `data_prep` module](#crop-classification-data_prep-module)
       - [Scripts](#scripts)
-        - [create\_bb.py](#create_bbpy)
-        - [select\_aoi.py](#select_aoipy)
-        - [create\_chip\_5070\_payload.py](#create_chip_5070_payloadpy)
-        - [grab\_cids\_from\_selected\_tiles.py](#grab_cids_from_selected_tilespy)
-        - [ipfs\_cli\_download.py](#ipfs_cli_downloadpy)
-        - [check\_ipfs\_content\_retrievability.py](#check_ipfs_content_retrievabilitypy)
-        - [split\_training\_data.py](#split_training_datapy)
-        - [calc\_band\_mean\_sd.py](#calc_band_mean_sdpy)
-        - [calc\_class\_weights.py](#calc_class_weightspy)
-        - [generate\_class\_distribution.py.py](#generate_class_distributionpypy)
     - [Data Prerequisites](#data-prerequisites)
   - [Dataset Summary](#dataset-summary)
     - [Band Order](#band-order)
@@ -32,7 +20,7 @@
     - [Reproject each tile based on the CDL projection](#reproject-each-tile-based-on-the-cdl-projection)
     - [Import saved dataframe files and preparing tile chipping process](#import-saved-dataframe-files-and-preparing-tile-chipping-process)
     - [Filter out resultant chipped scenes](#filter-out-resultant-chipped-scenes)
-    - [Notes](#notes)
+- [Notes](#notes)
 - [Diagrams](#diagrams)
 
 ## Introduction
@@ -260,9 +248,7 @@ Review the chip details and filter chips based on QA values and NA values. Chips
 
 The `merged.tif` and `mask.tif` images for the resultant selection are then copied to the `chips filtered` directory.
 
----
-
-### Notes
+## Notes
 
 When first determining which HLS tiles to use in the pipeline, please check that there are erroneous HLS tiles (see step 0a in workflow.ipynb). In our use case, we found that certain chips in southern CONUS were associated with HLS tile 01SBU, which is wrong.
 
