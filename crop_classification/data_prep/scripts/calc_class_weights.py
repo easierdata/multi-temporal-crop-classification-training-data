@@ -46,8 +46,9 @@ def calculate_class_weights(files: Path) -> List[np.float64]:
     """
     y = []
     for file in files:
-        data = open_tiff(file)
-        y.append(data.flatten())
+        if "mask.tif" in file.name:
+            data = open_tiff(file)
+            y.append(data.flatten())
     y_stack = np.vstack(y)
     y_flatten = y_stack.flatten()
     class_weights = compute_class_weight(
