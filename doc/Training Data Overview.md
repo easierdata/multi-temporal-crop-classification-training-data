@@ -1,4 +1,38 @@
-# Steps to Reproduce Training Data
+# How training data is created
+
+## Table of Contents
+- [How training data is created](#how-training-data-is-created)
+  - [Table of Contents](#table-of-contents)
+  - [Introduction](#introduction)
+    - [Process Outline](#process-outline)
+    - [Crop Classification `data_prep` module](#crop-classification-data_prep-module)
+      - [Scripts](#scripts)
+        - [grab\_cids\_from\_selected\_tiles.py](#grab_cids_from_selected_tilespy)
+        - [create\_bb.py](#create_bbpy)
+        - [select\_aoi.py](#select_aoipy)
+        - [ipfs\_cli\_download.py](#ipfs_cli_downloadpy)
+        - [check\_ipfs\_content\_retrievability.py](#check_ipfs_content_retrievabilitypy)
+        - [split\_training\_data.py](#split_training_datapy)
+        - [calc\_band\_mean\_sd.py](#calc_band_mean_sdpy)
+        - [calc\_class\_weights.py](#calc_class_weightspy)
+        - [generate\_class\_distribution.py.py](#generate_class_distributionpypy)
+    - [Data Prerequisites](#data-prerequisites)
+  - [Dataset Summary](#dataset-summary)
+    - [Band Order](#band-order)
+    - [Data Splits](#data-splits)
+  - [Detailed Explanation of the Pipeline Process](#detailed-explanation-of-the-pipeline-process)
+    - [Prepare Chip Detail Payloads](#prepare-chip-detail-payloads)
+    - [Prepare HLS Tile Spatial Context](#prepare-hls-tile-spatial-context)
+    - [Find and Identify the nearest tile to each chip](#find-and-identify-the-nearest-tile-to-each-chip)
+    - [Query metadata on the overlapping tiles](#query-metadata-on-the-overlapping-tiles)
+    - [Filter the tile metadata based on the spatial coverage threshold](#filter-the-tile-metadata-based-on-the-spatial-coverage-threshold)
+    - [Select Candidate images based on timestamps](#select-candidate-images-based-on-timestamps)
+    - [Download the selected tiles from IPFS](#download-the-selected-tiles-from-ipfs)
+    - [Reproject each tile based on the CDL projection](#reproject-each-tile-based-on-the-cdl-projection)
+    - [Import saved dataframe files and preparing tile chipping process](#import-saved-dataframe-files-and-preparing-tile-chipping-process)
+    - [Filter out resultant chipped scenes](#filter-out-resultant-chipped-scenes)
+    - [Notes](#notes)
+- [Diagrams](#diagrams)
 
 ## Introduction
 
@@ -25,19 +59,25 @@ The prior [workflow](https://github.com/ClarkCGA/multi-temporal-crop-classificat
 3. [reproject_hls_scenes.py](./crop_classification/data_prep/reproject_hls_scenes.py) - This script reprojects the HLS scene to match CDL projection.
 4. [generate_training_chips.py](./crop_classification/data_prep/generate_training_chips.py) - This script generates the training chip dataset that's sent through the model pipeline.  merges scene bands and clips to chip boundaries. It also discards clipped results that do not meet QA and NA criteria.
 
+Run the scripts in the order listed above to generate the training data:
+
+```bash
+python crop_classification/data_prep/<name>.py
+```
+
 #### Scripts
 
 ##### grab_cids_from_selected_tiles.py
 
 Handles getting the CIDs for the selected tiles and generates a JSON file containing the Content Identifiers (CIDs) for each tile.
 
-**When to run**: This script should be run after selecting the AOI and downloading the required HLS data to generate the CIDs for each tile, which are necessary for further processing in the pipeline. The resulting output can be used to run `ipfs_cli_download.py` to download the HLS scenes or `check_ipfs_content_retrievability`.
+**When to run**: Run after selecting the AOI and downloading the required HLS data to generate the CIDs for each tile, which are necessary for further processing in the pipeline. The resulting output can be used to run `ipfs_cli_download.py` to download the HLS scenes or `check_ipfs_content_retrievability`.
 
 ##### create_bb.py
 
 Responsible for generating bounding boxes for chips based on the Cropland Data Layer (CDL) data. It processes the CDL data to create a GeoJSON file containing the bounding boxes and their associated properties. These bounding boxes are used in subsequent steps of the pipeline to define the spatial extent of the chips that will be processed.
 
-**When to run:** This script should be run at the beginning of the pipeline to prepare the spatial extents for the chips.
+**When to run:** Run at the beginning of the pipeline to prepare the spatial extents for the chips.
 
 ##### select_aoi.py
 
@@ -49,7 +89,7 @@ Generates an interactive web map tool for users to select an Area of Interest (A
 
 Handles the downloading of HLS scenes based on the selected tiles, with the [ipfs CLI tool](https://docs.ipfs.tech/reference/kubo/cli/#ipfs). It retrieves the assets associated with each tile from IPFS and saves them to the local directory for further processing. This script ensures that all necessary HLS data is available locally for subsequent steps in the pipeline.
 
-**When to run:** This script should be run after selecting the AOI to download the required HLS data.
+**When to run:** After selecting the AOI to download the required HLS data.
 
 > Note: This script is optional and can be used as an alternative to the `retrieve_hls_scenes.py` script. It can also be used as an auxiliary tool to help identify and download HLS scenes from IPFS using the ipfs CLI tool directly.
 
@@ -57,31 +97,31 @@ Handles the downloading of HLS scenes based on the selected tiles, with the [ipf
 
 Checks the retrievability of content from IPFS by attempting to download each Content Identifier (CID). It iterates through a list of CIDs, tries to download the corresponding content, and logs any missing or inaccessible CIDs to a JSON file. This information is used to identify and address any issues with data availability on IPFS.
 
-**When to run**: This script can be run after generating the json from `grab_cids_from_selected_tiles.py`.
+**When to run**: After generating the json from `grab_cids_from_selected_tiles.py`.
 
 ##### split_training_data.py
 
 Splits the chip IDs into training and validation sets for the specified training dataset in the configuration file. A unique list of chip IDs are determined from the files in the `chips_filtered` directory. It reads the list of chip IDs, randomly assigns them to either the training or validation set, and saves the resulting lists to CSV files. These CSV files are used to train and validate the crop classification model, ensuring that the model is evaluated on a separate set of data from what it was trained on.
 
-**When to run:** This script should be run after preparing the chip data to create the training and validation datasets.
+**When to run:** After preparing the chip data to create the training and validation datasets.
 
 ##### calc_band_mean_sd.py
 
 Calculates statistical metrics (mean, standard deviation, minimum, and maximum values) for each set of bands in the final merged image in the `filtered_chips` directory. The statistics are saved to a text files and also stores all band values in a binary file.
 
-**When to run:** This script should be run after preparing the chip data to create the training and validation datasets. This output can be used to compute the mean and standard deviation for normalization purposes during model training.
+**When to run:** After preparing the chip data to create the training and validation datasets. This output can be used to compute the mean and standard deviation for normalization purposes during model training.
 
 ##### calc_class_weights.py
 
 Calculates class weights for crop classification based on the frequency of each class of the mask image files found in the `filtered_chips` directory. The data in each image file is flattened to calculate the class weights, normalizing them so their sum equals 1. It inserts a weight of 0 for the background class (no crop) and saves the calculated class weights to a CSV file.
 
-**When to run:** This script should be run after preparing the chip data to create the training and validation datasets. The calculated class weights can then be used for training the model.
+**When to run:** After preparing the chip data to create the training and validation datasets. The calculated class weights can then be used for training the model.
 
 ##### generate_class_distribution.py.py
 
 Generates and plots the class distribution for training and validation datasets in a crop classification pipeline. Processes each TIFF mask file to calculate the frequency of each class, to plot the class distributions. resulting plots are saved as PNG files, providing a visual representation of the class occurrences in the training and validation datasets.
 
-**When to run:** This script should be run after preparing the chip data to create the training and validation datasets. The plots aid in understanding the data distribution and ensuring balanced class representation for model training.
+**When to run:** After preparing the chip data to create the training and validation datasets. The plots aid in understanding the data distribution and ensuring balanced class representation for model training.
 
 ### Data Prerequisites
 
@@ -129,7 +169,7 @@ The 3,854 chips have been randomly split into training (80%) and validation (20%
 
 ## Detailed Explanation of the Pipeline Process
 
-## Prepare Chip Detail Payloads
+### Prepare Chip Detail Payloads
 
 This payload contains the details about the chip information that will be used to identify corresponding tiles. This information is derived from the `chips_id.json` file to generate the following dataframe:
 
@@ -138,7 +178,7 @@ This payload contains the details about the chip information that will be used t
 * Chip Y centroid coordinate
 * Tile Name
 
-## Prepare HLS Tile Spatial Context
+### Prepare HLS Tile Spatial Context
 
 This payload contains the spatial context about the Sentinel scene tiles in `sentinel_tile_grid.kml`.  The information derived is:
 
@@ -147,11 +187,11 @@ This payload contains the spatial context about the Sentinel scene tiles in `sen
 * Tile Y centroid coordinate
 * Tile bounding box
 
-## Find and Identify the nearest tile to each chip
+### Find and Identify the nearest tile to each chip
 
 Loop each chip and identify closest tile by the xy centroid. The chip payload dataframe is modified with tile information and is saved to file for reuse later.
 
-## Query metadata on the overlapping tiles
+### Query metadata on the overlapping tiles
 
 Here, we need to capture and store metadata details all scenes for a given tile that are above a specific cloud cover threshold. This information comes from a xml metadata file found at [this STAC instance endpoint](https://cmr.earthdata.nasa.gov/stac/LPCLOUD).
 
@@ -165,7 +205,7 @@ Here, we need to capture and store metadata details all scenes for a given tile 
       * HTTP & S3 links for the bands `B02`, `B03`, `B04`, `B8A`, `B11`, `B12` and `fmask`
 3. Save scene results down as tile payload dataframe to file for reuse later.
 
-## Filter the tile metadata based on the spatial coverage threshold
+### Filter the tile metadata based on the spatial coverage threshold
 
 Here we identify scenes that meet our criteria of:
 
@@ -174,36 +214,37 @@ Here we identify scenes that meet our criteria of:
 
 The cloud cover criteria is < 5% total cloud in entire image. The spatial coverage criteria first attempts to find 3 candidate images with 100% spatial coverage, and then decreases this threshold to 90%, 80%... 50%.
 
-## Select Candidate images based on timestamps
+### Select Candidate images based on timestamps
 
 1. Sort the filtered coverage list by date, grouped by tile ID
 2. Select from the list the first, middle and last scene
    * If list contains an even number of scenes, the lower of the two is selected for the middle scene
 3. Save list of selected tiles to disk
 
-## Download the selected tiles from IPFS
+### Download the selected tiles from IPFS
 
 1. Loop through the selected tiles list and grab the [CIDs](https://docs.ipfs.tech/concepts/content-addressing/) for the required bands.
 2. With the CIDs, retrieve the image bands from IPFS and save to disk, to a directory as `tile-id.tile-date.v2.0`
 
-## Reproject each tile based on the CDL projection
+### Reproject each tile based on the CDL projection
 
 Loop through each band and reproject, matching the CDL coordinate system `EPSG:5070`. Files are saved to the directory `tiles_reprojected`.
 
-## Import saved dataframe files and preparing tile chipping process
+### Import saved dataframe files and preparing tile chipping process
 
 1. Import the tile chip df files and reinstate as a dataframe
 2. Create a unique list of scenes that need to be clipped
 3. Set-up the CDL reclass properties in order to reclass chips
 4. Run the `Process Chip` function to clip scenes for all tiles.
    * The bands for each scene is processed and clipped.
-   * Resultant clip is saved to the chips folder, grouped by Chip ID
+   * Resultant clip is saved to the chips folder, grouped by Chip ID.
 5. Chip details are saved to a file to validation
 
 > **chip_xxx_xxx_merged.tif**: Three HLS scenes merged together per chip, with band order R, G, B, NIR for first date, then second date, then third date.
-> **chip_xxx_xxx.mask.tif**: used to handle cloud cover and other quality aspects of the images. Specifically, it helps in filtering out bad quality pixels and ensuring only valid data is used for generating the training dataset.
+> **chip_xxx_xxx_Fmask.tif**: used to handle cloud cover and other quality aspects of the images. Specifically, it helps in filtering out bad quality pixels and ensuring only valid data is used for generating the training dataset. NOTE: Fmask files are saved to the `chips_fmask` directory.
+> **chip_xxx_xxx.mask.tif**: contains the target classes for each pixel in the merged image. The mask is used to train the model to classify the land cover types in the training dataset.
 
-## Filter out resultant chipped scenes
+### Filter out resultant chipped scenes
 
 Review the chip details and filter chips based on QA values and NA values. Chips are filtered based on the following logic:
 
@@ -214,7 +255,7 @@ The `merged.tif` and `mask.tif` images for the resultant selection are then copi
 
 ---
 
-### *Notes*
+### Notes
 
 When first determining which HLS tiles to use in the pipeline, please check that there are erroneous HLS tiles (see step 0a in workflow.ipynb). In our use case, we found that certain chips in southern CONUS were associated with HLS tile 01SBU, which is wrong.
 
