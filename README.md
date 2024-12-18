@@ -2,7 +2,7 @@
 
 ## Introduction
 
-This repository, originally [based](https://github.com/ClarkCGA/multi-temporal-crop-classification-training-data) from [Clark Center for Geospatial Analytics](https://www.clarku.edu/centers/geospatial-analytics/), contains the pipeline to generate data for input into the [multi-temporal crop classification model pipeline](https://github.com/ClarkCGA/multi-temporal-crop-classification-baseline) to fine-tune, test or inference using the baseline supervised CNN model or creating a new baseline model from scratch.
+This repository, originally [based](https://github.com/ClarkCGA/multi-temporal-crop-classification-training-data) from [Clark Center for Geospatial Analytics](https://www.clarku.edu/centers/geospatial-analytics/), contains the pipeline to generate data for input into the [multi-temporal crop classification model pipeline](https://github.com/easierdata/multi-temporal-crop-classification-baseline) to fine-tune, test or inference using the baseline supervised CNN model or creating a new baseline model from scratch.
 
 Input model data is derived the USDA Cropland Data Layer (CDL) to curate crop type labels and scenes from [NASAs Harmonized Landsat and Sentinel-2](https://hls.gsfc.nasa.gov/) (HLS) to capture snapshots of time across the growing season. A selection of HLS scenes is available on [IPFS](https://ipfs.io/) and [Filecoin](https://filecoin.io/) for decentralized and accessible open science collaboration.
 
