@@ -69,6 +69,42 @@ def calc_mean_std(kwargs) -> None:
         pickle.dump(vals_all, file)
 
 
+def generate_global_stats() -> None:
+    # Initialize lists to store the values
+    min_values = []
+    max_values = []
+    mean_values = []
+    std_values = []
+    band_stats_dir = Path(TRAINING_DATASET_PATH, "band_stats").resolve()
+    band_stats_txt_files = list(band_stats_dir.glob("*.txt"))
+    band_stats_txt_files.sort()
+    # Loop through the 6 text files
+    for filename in band_stats_txt_files:
+        with open(filename, "r") as file:
+            for line in file:
+                if line.startswith("Min:"):
+                    min_values.append(float(line.split(": ")[1].strip()))
+                elif line.startswith("Max:"):
+                    max_values.append(float(line.split(": ")[1].strip()))
+                elif line.startswith("Mean:"):
+                    mean_values.append(float(line.split(": ")[1].strip()))
+                elif line.startswith("Std:"):
+                    std_values.append(float(line.split(": ")[1].strip()))
+
+    # Print the lists in the desired format
+    print(f"min: {min_values}")
+    print(f"max: {max_values}")
+    print(f"mean: {mean_values}")
+    print(f"std: {std_values}")
+
+    # Save each list as a row to a text file in the training dataset directory
+    with open(Path(TRAINING_DATASET_PATH, "global_stats.txt"), "w") as file:
+        file.write(f"min: {min_values}\n")
+        file.write(f"max: {max_values}\n")
+        file.write(f"mean: {mean_values}\n")
+        file.write(f"std: {std_values}\n")
+
+
 def main() -> None:
     """
     Main function to calculate mean and standard deviation for each band.
@@ -97,6 +133,9 @@ def main() -> None:
     df = pd.DataFrame({"i_band": i_band, "band": band_ids})
     with mp.Pool(processes=6) as pool:
         pool.map(calc_mean_std, df.to_dict("records"))
+
+    # Save HLS band stats to a text file
+    generate_global_stats()
 
 
 if __name__ == "__main__":
